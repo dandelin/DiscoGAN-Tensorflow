@@ -15,7 +15,7 @@ class DiscoGAN(object):
         Arguments :
             sess : Tensorflow Session
             x_size : (height, width) information of set X
-            channel : 3 (RGB), 1 (Greyscale)
+            channel : 3 (RGB), 1 (Greyscale, Spectrogram)
             batch_size : minibatch size
             conv_infos : convolutional layer's informations
             deconv_infos : deconvolutional layer's informations
@@ -59,7 +59,7 @@ class Generator(object):
         """
         Arguments :
             x_dim : (height, width) information of set X
-            channel : 3 (RGB), 1 (Greyscale)
+            channel : 3 (RGB), 1 (Greyscale, Spectrogram)
             batch_size : minibatch size
             conv_infos : convolutional layer's informations
             deconv_infos : deconvolutional layer's informations
@@ -116,7 +116,7 @@ class Discriminator(object):
         """
         Arguments :
             dim : (height, width) information
-            channel : 3 (RGB), 1 (Greyscale)
+            channel : 3 (RGB), 1 (Greyscale, Spectrogram)
             batch_size : minibatch size
             conv_infos : convolutional layer's informations
             set_name : Instance's name like D_A
