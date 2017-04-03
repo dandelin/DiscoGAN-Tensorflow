@@ -9,7 +9,10 @@ from custom_activation import lrelu
 
 
 
+#gen_conv_infos = { "conv_layer_number": 3, "filter":[[4,4],[5,5],[3,3]], "stride" : [[1,6,6,1],[1,7,7,1],[1,2,2,1]] }
+# # Needs to be modified according to the structrue we are aiming for
 
+#DiscoGAN(conv_infos)
 
 
 
@@ -42,12 +45,7 @@ class DiscoGAN(object):
         self.deconv_infos = deconv_infos
 
         self.lr = learning_rate
-    
-        """ data """
-        self.domain_A = tf.placeholder(tf.float32,shape=[self.batch_size,self.image_dims['A'],self.channel],name="domain_A")
-        self.domain_B = tf.placeholder(tf.float32,shape=[self.batch_size,self.image_dims['B'],self.channel],name="domain_B")
-        """"""""""""
-
+   
 
     def build_generator(self, signature):
         in_dim = self.image_dims[signature[0]]
@@ -75,7 +73,7 @@ class DiscoGAN(object):
 class Generator(object):
     def __init__(
         self, in_dim=(64, 64), out_dim=(64, 64), channel=3, batch_size=64,
-        conv_infos, deconv_infos, bn_number, signature='AB'
+        gen_conv_infos, gen_deconv_infos, bn_number, signature='AB'
     ):
         """
         Arguments :
@@ -99,8 +97,9 @@ class Generator(object):
         
         self.channel = channel
         self.signature = signature
-        self.conv_infos = conv_infos
-        self.deconv_infos = deconv_infos
+
+        self.conv_infos = gen_conv_infos
+        self.deconv_infos = gen_deconv_infos
     
 
     def build_model(self, image, reuse=False):
@@ -108,6 +107,8 @@ class Generator(object):
             if reuse:
                 scope.reuse_variables()
                 
+            
+            conv_infos = conv_information(self.conv_infos) #make instance
 
 
             prev = image
@@ -118,7 +119,7 @@ class Generator(object):
                     add batch normalization
                     add tensorboard summaries
                 """
-                conv = tf.nn.conv2d(prev, filter, strides,
+                conv = tf.nn.conv2d(prev, conv_infos.filter[i], conv_infos.strides[i],
                     padding="SAME", name="g_conv_" + str(i))
                 setattr(self, "conv_" + str(i), conv)
 
@@ -161,7 +162,7 @@ class Generator(object):
 
 class Discriminator(object):
     def __init__(
-        self, dim=(64, 64), channel=3, batch_size=64, conv_infos, set_name='A'
+        self, dim=(64, 64), channel=3, batch_size=64, disc_conv_infos, set_name='A'
     ):
         """
         Arguments :
@@ -197,3 +198,25 @@ class batch_norm(object):
                       scale=True,  # If next layer is linear like "Relu", this can be set as "False". Because You don't really need gamma in this case.
                       is_training=phase,  # Training mode or Test mode 
                       scope=self.name)
+
+
+class conv_information(object):
+    
+    def __init__(self, conv_infos):
+        self.conv_layer_number = conv_infos["conv_layer_number"]
+        self.filter = conv_infos["filter"]
+        self.stride = conv_stride["stride"]
+        self.current = 0
+ 
+    
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        
+        if self.current >= self.conv_layer_number:
+            raise StopIteration
+        else:
+            self.current += 1
+            return self
+
