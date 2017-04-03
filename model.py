@@ -43,10 +43,10 @@ class DiscoGAN(object):
 
         self.lr = learning_rate
     
-
-        x_a = tf.placeholder(tf.float32,shape=[batch_size,a_dim,channel],name="x_a")
-        x_b = tf.placeholder(tf.float32,shape=[batch_size,b_dim,channel],name="x_b")
-
+        """ data """
+        self.domain_A = tf.placeholder(tf.float32,shape=[self.batch_size,self.image_dims['A'],self.channel],name="domain_A")
+        self.domain_B = tf.placeholder(tf.float32,shape=[self.batch_size,self.image_dims['B'],self.channel],name="domain_B")
+        """"""""""""
 
 
     def build_generator(self, signature):
@@ -94,7 +94,7 @@ class Generator(object):
         self.a_width = in_dim[1]
         
         self.out_dim = out_dim
-        self.b_height = out_dim[9]
+        self.b_height = out_dim[0]
         self.b_width = out_dim[1]
         
         self.channel = channel
@@ -107,13 +107,7 @@ class Generator(object):
         with tf.variable_scope("G_" + this.signature) as scope:
             if reuse:
                 scope.reuse_variables()
-
-            for i in bn_number:
-
-                bn = batch_norm(name='g_bn_' + str(i))
-                setattr(self, "bn_" + str(i), bn)
- 
-
+                
 
 
             prev = image
@@ -127,7 +121,18 @@ class Generator(object):
                 conv = tf.nn.conv2d(prev, filter, strides,
                     padding="SAME", name="g_conv_" + str(i))
                 setattr(self, "conv_" + str(i), conv)
-                prev = conv
+
+                bn = batch_norm(name='g_bn_' + str(i))
+                setattr(self, "bn_" + str(i), bn) 
+
+                normalized_layer = bn(conv)      # arg "phase" has to be specified whether it is training or test session         
+
+                activated_conv = lrelu(normalized_layer) #Right after conv layer, relu function has not yet specified.
+
+                prev = activated_conv
+
+
+
 
             for i, dconv_info in enumerate(deconv_infos):
                 """
@@ -137,7 +142,22 @@ class Generator(object):
                 """
                 conv_t = tf.nn.conv2d_transpose(prev, filter, output_shape, strides,
                     padding="SAME", name="g_deconv_" + str(i))
+
+                bn = batch_norm(name='g_bn_' + str(i))
+                setattr(self, "bn_" + str(i), bn) 
+
+                normalized_layer = bn(conv)              # arg "phase" has to be specified whether it is training or test session  
+
+                activated_conv = lrelu(normalized_layer) # Right after conv layer, relu function has not yet specified.
+
+
                 prev = conv_t
+
+
+        Generated = prev 
+
+        return Generated
+
 
 class Discriminator(object):
     def __init__(
@@ -169,7 +189,7 @@ class batch_norm(object):
         self.momentum = momentum
         self.name = name
 
-    def __call__(self, x, phase = True):   # If phase == True, then training phase. If phase == False, then test phase.
+    def __call__(self, x, phase = None):   # If phase == True, then training phase. If phase == False, then test phase.
         tf.contrib.layers.batch_norm(x,
                       decay=self.momentum,  #The more you have your data, the bigger the momentum has to be
                       updates_collections=None, 
