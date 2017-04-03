@@ -6,6 +6,14 @@ import tensorflow as tf
 
 from custom_activation import lrelu
 
+
+
+
+
+
+
+
+
 class DiscoGAN(object):
     def __init__(
         self, sess, a_dim=(64, 64), b_dim=(64, 64), channel=3, batch_size=64,
@@ -35,6 +43,12 @@ class DiscoGAN(object):
 
         self.lr = learning_rate
     
+
+        x_a = tf.placeholder(tf.float32,shape=[batch_size,a_dim,channel],name="x_a")
+        x_b = tf.placeholder(tf.float32,shape=[batch_size,b_dim,channel],name="x_b")
+
+
+
     def build_generator(self, signature):
         in_dim = self.image_dims[signature[0]]
         out_dim = self.image_dims[signature[1]]
@@ -50,11 +64,18 @@ class DiscoGAN(object):
 
     def train(self):
         """ TO DO """
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) #To force update moving average and variance
+        with tf.control_dependencies(update_ops):
+            # Ensures that we execute the update_ops before performing the train_step
+            train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
+        sess = tf.Session()
+        sess.run(tf.global_variables_initializer())
+
 
 class Generator(object):
     def __init__(
         self, in_dim=(64, 64), out_dim=(64, 64), channel=3, batch_size=64,
-        conv_infos, deconv_infos, signature='AB'
+        conv_infos, deconv_infos, bn_number, signature='AB'
     ):
         """
         Arguments :
@@ -81,10 +102,19 @@ class Generator(object):
         self.conv_infos = conv_infos
         self.deconv_infos = deconv_infos
     
+
     def build_model(self, image, reuse=False):
         with tf.variable_scope("G_" + this.signature) as scope:
             if reuse:
                 scope.reuse_variables()
+
+            for i in bn_number:
+
+                bn = batch_norm(name='g_bn_' + str(i))
+                setattr(self, "bn_" + str(i), bn)
+ 
+
+
 
             prev = image
 
@@ -131,3 +161,19 @@ class Discriminator(object):
     
     def build_model(self, image, reuse=False):
         """ TO DO """
+
+
+class batch_norm(object):
+    def __init__(self, epsilon = 0.001, momentum = 0.99, name = "batch_norm"):
+        self.epsilon = epsilon
+        self.momentum = momentum
+        self.name = name
+
+    def __call__(self, x, phase = True):   # If phase == True, then training phase. If phase == False, then test phase.
+        tf.contrib.layers.batch_norm(x,
+                      decay=self.momentum,  #The more you have your data, the bigger the momentum has to be
+                      updates_collections=None, 
+                      epsilon=self.epsilon,
+                      scale=True,  # If next layer is linear like "Relu", this can be set as "False". Because You don't really need gamma in this case.
+                      is_training=phase,  # Training mode or Test mode 
+                      scope=self.name)
