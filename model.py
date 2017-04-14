@@ -25,7 +25,7 @@ gen_conv_infos = { "conv_layer_number": 4, "filter":[[4,4,3,64],[4,4,64,64*2],[4
 class DiscoGAN(object):
     def __init__(
         self, sess, a_dim=(64, 64), b_dim=(64, 64), channel=3, batch_size=64,
-        gen_conv_infos, gen_deconv_infos, disc_conv_infos 
+        gen_conv_infos, gen_deconv_infos, disc_conv_infos, phase = True      # Phase default : True (Training) 
     ):
         """
         Arguments :
@@ -76,9 +76,14 @@ class DiscoGAN(object):
         setattr(self, 'D_' + set_name, d)
 
 
-    def build_model(self, images):
-        self.images = images
-
+    def build_model(self, images_A, images_B):
+        with tf.variable_scope('Fetch'):
+            self.images_A = tf.placeholder(dtype=tf.float32,
+                                     shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape-------------------
+                                     name='images_A')
+            self.images_B = tf.placeholder(dtype=tf.float32,
+                                     shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape-------------------
+                                     name='images_B')
 
         # Model Architecture
   
@@ -88,8 +93,8 @@ class DiscoGAN(object):
         self.build_discriminator(signature = 'B') # Init D_B
 
         # Domain_A -> Domain_B   &&   Domain_B -> Domain_A
-        self.x_AB = G_AB.build_model(self.images) # Put x_A and generate x_AB
-        self.x_BA = G_BA.build_model(self.images) # Put x_B and generate x_BA
+        self.x_AB = G_AB.build_model(self.images_A) # Put x_A and generate x_AB
+        self.x_BA = G_BA.build_model(self.images_B) # Put x_B and generate x_BA
 
         # Resconstruct 
         self.x_ABA = G_BA.build_model(self.x_AB) # Put x_AB and generate x_ABA
@@ -129,15 +134,16 @@ class DiscoGAN(object):
                         (self.Generator_loss_A + self.Reconstruction_loss_B)  #L_G = L_G_AB + L_G_BA = (L_GAN_B + L_CONST_A) + (L_GAN_A + L_CONST_B)
 
 
+        return self.Generator_loss, self.Discriminator_loss
 
-
-    def train(self, learning_rate = 0.002,  beta1 = 0.5, beta2 = 0.999, epsilon = 1e-08):
+    def train(self, learning_rate = 0.002,  beta1 = 0.5, beta2 = 0.999, epsilon = 1e-08, epoch = 10000000):
         """ TO DO """
         self.lr = learning_rate
         self.B1 = beta1
         self.B2 = beta2
         self.eps = epsilon
         self.sess = tf.Session()
+        self.epoch = epoch
 
 """     
         To Do
@@ -146,11 +152,21 @@ class DiscoGAN(object):
 
         Pseudo code as follows :
 
-        images = train.py()
+        images = data.py()
 
         self.build_model(images)
 
 """
+        trainable_variables = tf.trainable_variables() # get all variables that were checked "trainable = True"
+
+        self.Generator_variables = [var for var in trainable_variables if 'G_' in var.name]        
+        self.Discriminator_variables = [var for var in trainable_variables if 'D_' in var.name]
+
+
+        for var in self.Generator_variables:
+            print(var.name)
+        for var in self.Discriminator_variables:
+            print(var.name)
 
 
         # Optimizer for Generator and Descriminator each
@@ -158,17 +174,57 @@ class DiscoGAN(object):
         optimizer_D = tf.train_AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
 
 
-         
+
+        global_step = tf.Variable(0, name='global_step', trainable=False) #minibatch number
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) #To force update moving average and variance
+
         with tf.control_dependencies(update_ops): # Ensures that we execute the update_ops before performing the train_step
-            
-            optimize_D = optimizer_D.minimize(self.Discriminator_loss)
-            optimize_G = optimizer_G.minimize(self.Generator_loss)
-        
+            optimize_G = optimizer_G.minimize(self.Generator_loss, global_step = global_step, var_list = self.Generator_variables)
+            optimize_D = optimizer_D.minimize(self.Discriminator_loss, global_step = global_step, var_list = self.Discriminator_variables)
+
+
+        saver = tf.train.Saver(max_to_keep=1000)
 
         with self.sess() as sess:
             sess.run(tf.global_variables_initializer()) #run init
+            
+
+            tf.train.start_queue_runners(sess=sess) # queue runners
+
+            summary = tf.summary.merge_all() #merege summaries
+
+            writer = tf.summary.FileWriter('./logs', sess.graph) # add the graph to the file './logs'
+ 
+            """
+            --------To Do----------
+
+                Get Data Set
+
+            images_A = data.fetch(path_A)    
+            images_B = data.fetch(path_B)
+
+            """
+
+            
+            for step in range(self.epoch):
+
+            """ Pseudo code
+                images_A = get_next_batch(images_A)
+                images_B = get_next_batch(images_B)
+            """    
+
+                Generator_loss, Discriminator_loss = self.buildmodel(images_A, images_B)
+                sess.run([optimize_G, optimize_D, self.Generator_loss, self.Discriminator_loss], \
+                          feed_dict = {self.images_A : images_A, self.images_B : images_B} )
+
+                if step % 100 == 0:
+                    summary_run = sess.run(summary, feed_dict = {self.images_A : images_A, self.images_B : images_B})
+                    writer.add_summary(summary, step)
+                    
+                if step % 10 == 0:
+                    checkpoint_path = "/home/choi/Documents/git/DiscoGAN-Tensorflow/Checkpoint"
+                    saver.save(sess, checkpoint_path, global_step = step)
 
 
 class Generator(object):
