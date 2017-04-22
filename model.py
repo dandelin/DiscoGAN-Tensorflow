@@ -158,6 +158,7 @@ class DiscoGAN(object):
 
 """
         trainable_variables = tf.trainable_variables() # get all variables that were checked "trainable = True"
+        
 
         self.Generator_variables = [var for var in trainable_variables if 'G_' in var.name]        
         self.Discriminator_variables = [var for var in trainable_variables if 'D_' in var.name]
@@ -171,7 +172,7 @@ class DiscoGAN(object):
 
         # Optimizer for Generator and Descriminator each
         optimizer_G = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
-        optimizer_D = tf.train_AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
+        optimizer_D = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
 
 
 
@@ -190,7 +191,7 @@ class DiscoGAN(object):
             sess.run(tf.global_variables_initializer()) #run init
             
 
-            tf.train.start_queue_runners(sess=sess) # queue runners
+            #tf.train.start_queue_runners(sess=sess) # queue runners
 
             summary = tf.summary.merge_all() #merege summaries
 
@@ -214,9 +215,14 @@ class DiscoGAN(object):
                 images_B = get_next_batch(images_B)
             """    
 
-                Generator_loss, Discriminator_loss = self.buildmodel(images_A, images_B)
-                sess.run([optimize_G, optimize_D, self.Generator_loss, self.Discriminator_loss], \
+               
+                _, D_loss = sess.run([optimize_D, self.Discriminator_loss], \
                           feed_dict = {self.images_A : images_A, self.images_B : images_B} )
+
+                _, G_loss = sess.run([optimize_G, self.Generator_loss], \
+                          feed_dict = {self.images_A : images_A, self.images_B : images_B} )
+
+
 
                 if step % 100 == 0:
                     summary_run = sess.run(summary, feed_dict = {self.images_A : images_A, self.images_B : images_B})
@@ -356,7 +362,7 @@ class Discriminator(object):
                     add tensorboard summaries
                 """
                 conv = tf.nn.conv2d(prev, conv_infos.filter[i], conv_infos.strides[i],
-                    padding="SAME", name="g_conv_" + str(i))
+                    padding="SAME", name="d_conv_" + str(i))
                 setattr(self, "conv_" + str(i), conv)
 
                 if i == self.conv_layer_number-1 :
@@ -367,7 +373,7 @@ class Discriminator(object):
 
                 else :
                     
-                    bn = batch_norm(name='g_bn_' + str(i))
+                    bn = batch_norm(name='d_bn_' + str(i))
                     setattr(self, "bn_" + str(i), bn) 
 
                     normalized_layer = bn(conv)      # arg "phase" has to be specified whether it is training or test session         
