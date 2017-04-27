@@ -33,6 +33,8 @@ class Generator(object):
     
 
     def build_model(self, image, reuse=False):
+        with tf.variable_scope('is_training'):
+            is_training = tf.get_variable('is_training')
         with tf.variable_scope("G_" + self.signature) as scope:
             if reuse:
                 scope.reuse_variables()
@@ -56,7 +58,7 @@ class Generator(object):
                 bn = batch_norm(name='g_bn_' + str(i))
                 setattr(self, "bn_" + str(i), bn) 
 
-                normalized_layer = bn(conv)      # arg "phase" has to be specified whether it is training or test session         
+                normalized_layer = bn(conv, phase=is_training)      # arg "phase" has to be specified whether it is training or test session         
 
                 activated_conv = lrelu(normalized_layer) #Right after conv layer, relu function has not yet specified.
 
@@ -78,7 +80,7 @@ class Generator(object):
                 bn = batch_norm(name='g_bn_' + str(i))
                 setattr(self, "bn_" + str(i), bn) 
 
-                normalized_layer = bn(conv)              # arg "phase" has to be specified whether it is training or test session  
+                normalized_layer = bn(conv, phase=is_training)              # arg "phase" has to be specified whether it is training or test session  
 
                 activated_conv = lrelu(normalized_layer) # Right after conv layer, relu function has not yet specified.
 

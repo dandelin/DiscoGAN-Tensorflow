@@ -68,8 +68,6 @@ class DiscoGAN(object):
         setattr(self, 'G_' + signature, g)
 
 
-
-
     def build_discriminator(self, signature):
 
         # Build Discriminator Class
@@ -80,6 +78,8 @@ class DiscoGAN(object):
 
 
     def build_model(self, images_A, images_B):
+        with tf.variable_scope('is_training'):
+            is_training = tf.get_variable('is_training', dtype=tf.bool)
         with tf.variable_scope('Fetch'):
             self.images_A = tf.placeholder(dtype=tf.float32,
                                      shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape-------------------
@@ -215,6 +215,10 @@ class DiscoGAN(object):
 
             """
 
+            with tf.variable_scope('is_training'):
+                is_training = tf.get_variable('is_training')
+                sess.run(tf.assign(is_training, True))
+
             
             for step in range(self.epoch):
 
@@ -227,10 +231,9 @@ class DiscoGAN(object):
                 sess.run([optimize_G, optimize_D, self.Generator_loss, self.Discriminator_loss], \
                           feed_dict = {self.images_A : images_A, self.images_B : images_B} )
 
-                if step % 100 == 0:
-                    summary_run = sess.run(summary, feed_dict = {self.images_A : images_A, self.images_B : images_B})
-                    writer.add_summary(summary, step)
+                summary_run = sess.run(summary, feed_dict = {self.images_A : images_A, self.images_B : images_B})
+                writer.add_summary(summary, step)
                     
-                if step % 10 == 0:
+                if step % 50 == 0:
                     checkpoint_path = "/home/choi/Documents/git/DiscoGAN-Tensorflow/Checkpoint"
                     saver.save(sess, checkpoint_path, global_step = step)
