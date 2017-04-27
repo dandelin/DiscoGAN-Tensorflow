@@ -76,18 +76,15 @@ class Generator(object):
                 """
                 conv_t = tf.nn.conv2d_transpose(prev, deconv_info.filter[i], self.out_dim, deconv_info.stride[i],
                     padding="SAME", name="g_deconv_" + str(i))
+                
+                if i == deconv_infos.conv_layer_number - 1:
+                    return tf.sigmoid(conv_t)
 
                 bn = batch_norm(name='g_bn_' + str(i))
                 setattr(self, "bn_" + str(i), bn) 
 
                 normalized_layer = bn(conv, phase=is_training)              # arg "phase" has to be specified whether it is training or test session  
 
-                activated_conv = lrelu(normalized_layer) # Right after conv layer, relu function has not yet specified.
-
+                activated_conv = tf.nn.relu(normalized_layer) # Right after conv layer, relu function has not yet specified.
 
                 prev = conv_t
-
-
-        Generated = prev 
-
-        return Generated
