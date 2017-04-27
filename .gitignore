@@ -6,3 +6,5 @@ image*
 *.png
 *.json
 *tfevents*
+*ckpt*
+checkpoint

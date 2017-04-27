@@ -8,25 +8,10 @@ from generator import Generator
 from discriminator import Discriminator
 from util import lrelu, batch_norm
 
-
-'''
-gen_conv_infos = { "conv_layer_number": 4, "filter":[[4,4,3,64],[4,4,64,64*2],[4,4,64*2,64*4],[4,4,64*2,64*8], [4,4,64*2,1]],
-                   "stride" : [[1,2,2,1],[1,2,2,1],[1,2,2,1],[1,2,2,1]] }
-
-64 x 64 x 3   ->   31 x 31 x (64)  ->  ...
-
-
-# Needs to be modified according to the structrue we are aiming for
-'''
-
-
-
-
-
 class DiscoGAN(object):
     def __init__(
         self, sess, gen_conv_infos, gen_deconv_infos, disc_conv_infos,
-        a_dim=(64, 64), b_dim=(64, 64), channel=3, batch_size=64
+        a_dim=[64, 64], b_dim=[64, 64], channel=3, batch_size=64
     ):
         """
         Arguments :
@@ -50,10 +35,6 @@ class DiscoGAN(object):
         self.gen_conv_infos = gen_conv_infos
         self.gen_deconv_infos = gen_deconv_infos
         self.disc_conv_infos = disc_conv_infos
-        self.loaders = {
-            'A': Loader("./miniA", batch_size, a_dim, "NHWC", file_type="jpg"), #Number_batch, Height, Width, Channel
-            'B': Loader("./miniB", batch_size, b_dim, "NHWC", file_type="jpg")
-        }
 
     def build_generator(self, signature):
 
@@ -81,16 +62,18 @@ class DiscoGAN(object):
         with tf.variable_scope('is_training'):
             is_training = tf.get_variable('is_training', dtype=tf.bool, initializer=True)
 
+        self.x_A = Loader("./miniA", self.batch_size, self.image_dims['A'], "NHWC", file_type="jpg").queue
+        self.x_B = Loader("./miniB", self.batch_size, self.image_dims['B'], "NHWC", file_type="jpg").queue
+
         # Model Architecture
-        
         self.build_generator(signature = 'AB') # Init G_AB
         self.build_generator(signature = 'BA') # Init G_BA
         self.build_discriminator(signature = 'A') # Init D_A
         self.build_discriminator(signature = 'B') # Init D_B
 
         # Domain_A -> Domain_B   &&   Domain_B -> Domain_A
-        self.x_AB = self.G_AB.build_model(self.loaders['A'].queue) # Put x_A and generate x_AB
-        self.x_BA = self.G_BA.build_model(self.loaders['B'].queue) # Put x_B and generate x_BA
+        self.x_AB = self.G_AB.build_model(self.x_A) # Put x_A and generate x_AB
+        self.x_BA = self.G_BA.build_model(self.x_B) # Put x_B and generate x_BA
 
         # Resconstruct 
         self.x_ABA = self.G_BA.build_model(self.x_AB, reuse=True) # Put x_AB and generate x_ABA
@@ -98,15 +81,12 @@ class DiscoGAN(object):
 
 
         # Discriminate real images
-        self.logits_real_A = self.D_A.build_model(self.loaders['A'].queue)  # Discriminate x_A
-        self.logits_real_B = self.D_B.build_model(self.loaders['B'].queue)  # Discriminate x_B
+        self.logits_real_A = self.D_A.build_model(self.x_A)  # Discriminate x_A
+        self.logits_real_B = self.D_B.build_model(self.x_B)  # Discriminate x_B
 
         # Discriminate generated imaages
         self.logits_fake_A = self.D_A.build_model(self.x_BA, reuse=True)  # Discriminate x_BA
         self.logits_fake_B = self.D_B.build_model(self.x_AB, reuse=True)  # Discriminate x_AB
-
-
-
 
         ####### Loss #######
 
@@ -120,8 +100,8 @@ class DiscoGAN(object):
         self.Generator_loss_B = -tf.log(self.logits_fake_B) #L_GAN_B : Loss of generator(G_AB) trying to decive discriminator(D_A)
 
         #Reconstruction Loss : Three candidates according to the paper -> L1_norm, L2_norm, Huber Loss
-        self.Reconstruction_loss_A = tf.nn.l2_loss(tf.subtract(self.x_ABA, self.loaders['A'].queue, name="Reconstruct_Error")) #L_CONST_A
-        self.Reconstruction_loss_B = tf.nn.l2_loss(tf.subtract(self.x_BAB, self.loaders['B'].queue, name="Reconstruct_Error")) #L_CONST_B
+        self.Reconstruction_loss_A = tf.nn.l2_loss(tf.subtract(self.x_ABA, self.x_A, name="Reconstruct_Error")) #L_CONST_A
+        self.Reconstruction_loss_B = tf.nn.l2_loss(tf.subtract(self.x_BAB, self.x_B, name="Reconstruct_Error")) #L_CONST_B
           #for L1_norm : tf.losses.absolute_differences(labels, predictions)
 
         #Total Loss
@@ -129,10 +109,8 @@ class DiscoGAN(object):
         self.Generator_loss = (self.Generator_loss_B + self.Reconstruction_loss_A) + \
                         (self.Generator_loss_A + self.Reconstruction_loss_B)  #L_G = L_G_AB + L_G_BA = (L_GAN_B + L_CONST_A) + (L_GAN_A + L_CONST_B)
         
-        self.dl_summary = tf.summary.scalar('Discriminator_loss', self.Discriminator_loss)
-        self.gl_summary = tf.summary.scalar('Generator_loss', self.Generator_loss)
-
-        return self.Generator_loss, self.Discriminator_loss
+        self.dl_summary = tf.summary.scalar('Discriminator_loss', tf.reduce_mean(self.Discriminator_loss))
+        self.gl_summary = tf.summary.scalar('Generator_loss', tf.reduce_mean(self.Generator_loss))
 
     def train(self, learning_rate = 0.002, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-08, iteration = 10000000):
         """ TO DO """
@@ -142,43 +120,20 @@ class DiscoGAN(object):
         self.eps = epsilon
         self.sess = tf.Session()
         self.iteration = iteration
-        print('gere')
-
-        """     
-        To Do
-        
-        Fetch Data using queue and feed it to self.images
-
-        Pseudo code as follows :
-
-        images = data.py()
-
-        self.build_model(images)
-
-
-        img_A = data_loader()
-        img_B = data_loader()
-        self.build_model(self, images_A, images_B)
-
-        """
 
         trainable_variables = tf.trainable_variables() # get all variables that were checked "trainable = True"
 
         self.Generator_variables = [var for var in trainable_variables if 'G_' in var.name]        
         self.Discriminator_variables = [var for var in trainable_variables if 'D_' in var.name]
 
-
-        for var in self.Generator_variables:
-            print(var.name)
-        for var in self.Discriminator_variables:
-            print(var.name)
-
+        # for var in self.Generator_variables:
+        #     print(var.name)
+        # for var in self.Discriminator_variables:
+        #     print(var.name)
 
         # Optimizer for Generator and Descriminator each
         optimizer_G = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
         optimizer_D = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
-
-
 
         global_step = tf.Variable(0, name='global_step', trainable=False) #minibatch number
 
@@ -188,40 +143,31 @@ class DiscoGAN(object):
             optimize_G = optimizer_G.minimize(self.Generator_loss, global_step = global_step, var_list = self.Generator_variables)
             optimize_D = optimizer_D.minimize(self.Discriminator_loss, global_step = global_step, var_list = self.Discriminator_variables)
 
-
         saver = tf.train.Saver(max_to_keep=1000)
 
         summary = tf.summary.merge_all() #merege summaries
 
         writer = tf.summary.FileWriter('./logs', self.sess.graph) # add the graph to the file './logs'
 
-        """
-        --------To Do----------
-
-            Get Data Set
-
-        images_A = data.fetch(path_A)    
-        images_B = data.fetch(path_B)
-
-        """
-
         with tf.variable_scope('is_training', reuse=True):
             is_training = tf.get_variable('is_training', dtype=tf.bool)
             self.sess.run(tf.assign(is_training, True))
 
+        self.sess.run(tf.global_variables_initializer())
+        coord = tf.train.Coordinator()
+
+        threads = tf.train.start_queue_runners(sess=self.sess, coord=coord)
         
         for step in range(self.iteration):
-            """ Pseudo code
-                images_A = get_next_batch(images_A)
-                images_B = get_next_batch(images_B)
-            """    
+            if coord.should_stop():
+                break
             print('iter')
 
-            self.sess.run([optimize_G, optimize_D])
+            _, _, summary_run = self.sess.run([optimize_G, optimize_D, summary])
                         
-            summary_run = self.sess.run(summary)
-            writer.add_summary(summary, step)
+            writer.add_summary(summary_run, step)
                 
             if step % 50 == 0:
-                checkpoint_path = "/home/choi/Documents/git/DiscoGAN-Tensorflow/Checkpoint"
-                saver.save(self.sess, checkpoint_path, global_step = step)
+                saver.save(self.sess, os.path.join(os.getcwd(), "model.ckpt"), global_step = step)
+        coord.request_stop()
+        coord.join(threads)

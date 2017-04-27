@@ -4,18 +4,8 @@ from util import lrelu, batch_norm
 class Generator(object):
     def __init__(
         self, conv_infos, deconv_infos,
-        in_dim=(64, 64), out_dim=(64, 64), channel=3, batch_size=64, signature='AB'
+        in_dim=(64, 64), out_dim=(64, 64), channel=3, signature='AB'
     ):
-        """
-        Arguments :
-            x_dim : (height, width) information of set X
-            channel : 3 (RGB), 1 (Greyscale, Spectrogram)
-            batch_size : minibatch size
-            conv_infos : convolutional layer's informations
-            deconv_infos : deconvolutional layer's informations
-            signature : Instance's name like G_AB
-        """
-        self.batch_size = batch_size
         
         self.in_dim = in_dim
         self.a_height = in_dim[0]
@@ -42,11 +32,6 @@ class Generator(object):
             prev = image
 
             for i in range(self.conv_infos['conv_layer_number']):
-                """
-                    filter = 4 x 4, strides = [1, stride, stride, 1]
-                    add batch normalization
-                    add tensorboard summaries
-                """
                 weight = tf.get_variable('conv_weight_' + str(i), shape=self.conv_infos['filter'][i], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
                 setattr(self, "conv_weight_" + str(i), weight)
 
@@ -57,30 +42,19 @@ class Generator(object):
                 setattr(self, "conv_bn_" + str(i), bn) 
 
                 normalized_layer = bn(conv, phase=is_training)      # arg "phase" has to be specified whether it is training or test session         
-
                 activated_conv = lrelu(normalized_layer) #Right after conv layer, relu function has not yet specified.
-
                 prev = activated_conv
 
             for i in range(self.deconv_infos['conv_layer_number']):
-                """
-                    filter = 4 x 4, output_shape, strides = [1, stride, stride, 1]
-                    add batch normalization
-                    add tensorboard summaries
-                """
                 weight = tf.get_variable('deconv_weight_' + str(i), shape=self.deconv_infos['filter'][i], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
                 setattr(self, "deconv_weight_" + str(i), weight)
-                
+
                 conv_t = tf.nn.conv2d_transpose(prev, weight, self.deconv_infos['output_dims'][i], self.deconv_infos['stride'][i], padding="SAME", name="g_deconv_" + str(i))
-                print(conv_t)
                 if i == self.deconv_infos['conv_layer_number'] - 1:
                     return tf.sigmoid(conv_t)
-
                 bn = batch_norm(name='deconv_bn_' + str(i))
                 setattr(self, "deconv_bn_" + str(i), bn) 
 
                 normalized_layer = bn(conv_t, phase=is_training)              # arg "phase" has to be specified whether it is training or test session  
-
                 activated_conv = tf.nn.relu(normalized_layer) # Right after conv layer, relu function has not yet specified.
-
                 prev = conv_t
