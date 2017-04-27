@@ -51,7 +51,7 @@ class DiscoGAN(object):
         self.gen_deconv_infos = gen_deconv_infos
         self.disc_conv_infos = disc_conv_infos
         self.loaders = {
-            'A': Loader("imagesA", batch_size, a_dim, "NHWC"),
+            'A': Loader("imagesA", batch_size, a_dim, "NHWC"), #Number_batch, Height, Width, Channel
             'B': Loader("imagesB", batch_size, b_dim, "NHWC")
         }
 
@@ -81,12 +81,14 @@ class DiscoGAN(object):
         with tf.variable_scope('is_training'):
             is_training = tf.get_variable('is_training', dtype=tf.bool)
         with tf.variable_scope('Fetch'):
-            self.images_A = tf.placeholder(dtype=tf.float32,
-                                     shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape-------------------
-                                     name='images_A')
-            self.images_B = tf.placeholder(dtype=tf.float32,
-                                     shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape-------------------
-                                     name='images_B')
+            self.images_A = tf.placeholder(self.loaders['A'],
+                                    dtype=tf.float32,
+                                    shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape(NHWC)-------------------
+                                    name='images_A')
+            self.images_B = tf.placeholder(self.loaders['B'],
+                                    dtype=tf.float32,
+                                    shape=[self.batch_size, 64, 64, 3],    #<<<-----------image shape(NHWC)-------------------
+                                    name='images_B')
 
         # Model Architecture
   
@@ -139,14 +141,14 @@ class DiscoGAN(object):
 
         return self.Generator_loss, self.Discriminator_loss
 
-    def train(self, learning_rate = 0.002,  beta1 = 0.5, beta2 = 0.999, epsilon = 1e-08, epoch = 10000000):
+    def train(self, learning_rate = 0.002,  beta1 = 0.5, beta2 = 0.999, epsilon = 1e-08, iteration = 10000000):
         """ TO DO """
         self.lr = learning_rate
         self.B1 = beta1
         self.B2 = beta2
         self.eps = epsilon
         self.sess = tf.Session()
-        self.epoch = epoch
+        self.iteration = iteration
 
         """     
         To Do
@@ -180,7 +182,7 @@ class DiscoGAN(object):
 
         # Optimizer for Generator and Descriminator each
         optimizer_G = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
-        optimizer_D = tf.train_AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
+        optimizer_D = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
 
 
 
@@ -220,18 +222,19 @@ class DiscoGAN(object):
                 sess.run(tf.assign(is_training, True))
 
             
-            for step in range(self.epoch):
+            for step in range(self.iteration):
 
                 """ Pseudo code
                     images_A = get_next_batch(images_A)
                     images_B = get_next_batch(images_B)
                 """    
 
-                Generator_loss, Discriminator_loss = self.buildmodel(images_A, images_B)
-                sess.run([optimize_G, optimize_D, self.Generator_loss, self.Discriminator_loss], \
-                          feed_dict = {self.images_A : images_A, self.images_B : images_B} )
+                Generator_loss, Discriminator_loss = self.build_model(images_A, images_B)
+                sess.run([optimize_G, optimize_D])
+                          
 
-                summary_run = sess.run(summary, feed_dict = {self.images_A : images_A, self.images_B : images_B})
+
+                summary_run = sess.run(summary)
                 writer.add_summary(summary, step)
                     
                 if step % 50 == 0:
