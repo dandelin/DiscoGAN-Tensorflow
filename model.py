@@ -137,7 +137,9 @@ class DiscoGAN(object):
         self.Discriminator_loss = self.Discriminator_loss_A + self.Discriminator_loss_B #L_D = L_D_A + L_D_B
         self.Generator_loss = (self.Generator_loss_B + self.Reconstruction_loss_A) + \
                         (self.Generator_loss_A + self.Reconstruction_loss_B)  #L_G = L_G_AB + L_G_BA = (L_GAN_B + L_CONST_A) + (L_GAN_A + L_CONST_B)
-
+        
+        self.dl_summary = tf.summary.scalar('Discriminator_loss', self.Discriminator_loss)
+        self.gl_summary = tf.summary.scalar('Generator_loss', self.Generator_loss)
 
         return self.Generator_loss, self.Discriminator_loss
 
