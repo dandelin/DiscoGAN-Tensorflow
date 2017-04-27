@@ -6,12 +6,10 @@ class Discriminator(object):
     Arguments :
         dim : (height, width) information
         channel : 3 (RGB), 1 (Greyscale, Spectrogram)
-        batch_size : minibatch size
         conv_infos : convolutional layer's informations
         signature : Instance's name like D_A
     """
-    def __init__(self, conv_infos, dim=(64, 64), channel=3, batch_size=64, signature=None):
-        self.batch_size = batch_size
+    def __init__(self, conv_infos, dim=(64, 64), channel=3, signature=None):
         self.dim = dim
         self.channel = channel
         self.signature = signature
@@ -19,8 +17,8 @@ class Discriminator(object):
 
     def build_model(self, image, reuse=False):
         """ TO DO """
-        with tf.variable_scope('is_training'):
-            is_training = tf.get_variable('is_training')
+        with tf.variable_scope('is_training', reuse=True):
+            is_training = tf.get_variable('is_training', dtype=tf.bool)
 
         with tf.variable_scope("D_" + self.signature) as scope:
             if reuse:

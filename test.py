@@ -6,7 +6,7 @@ from loader import Loader, save_image
 import numpy as np
 
 
-root = "./imagesA"
+root = "./imageB"
 batch_size = 8
 scale_size = [64,64]
 data_format = "NHWC"

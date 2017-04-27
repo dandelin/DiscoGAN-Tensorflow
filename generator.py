@@ -3,7 +3,7 @@ from util import lrelu, conv_information, batch_norm
 
 class Generator(object):
     def __init__(
-        self, conv_infos, deconv_infos, bn_number,
+        self, conv_infos, deconv_infos,
         in_dim=(64, 64), out_dim=(64, 64), channel=3, batch_size=64, signature='AB'
     ):
         """
@@ -33,8 +33,8 @@ class Generator(object):
     
 
     def build_model(self, image, reuse=False):
-        with tf.variable_scope('is_training'):
-            is_training = tf.get_variable('is_training')
+        with tf.variable_scope('is_training', reuse=True):
+            is_training = tf.get_variable('is_training', dtype=tf.bool)
         with tf.variable_scope("G_" + self.signature) as scope:
             if reuse:
                 scope.reuse_variables()
@@ -51,7 +51,7 @@ class Generator(object):
                     add batch normalization
                     add tensorboard summaries
                 """
-                conv = tf.nn.conv2d(prev, conv_info.filter[i], conv_info.strides[i],
+                conv = tf.nn.conv2d(prev, conv_info.filter[i], conv_info.stride[i],
                     padding="SAME", name="g_conv_" + str(i))
                 setattr(self, "conv_" + str(i), conv)
 

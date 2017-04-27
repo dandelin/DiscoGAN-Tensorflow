@@ -51,8 +51,8 @@ class DiscoGAN(object):
         self.gen_deconv_infos = gen_deconv_infos
         self.disc_conv_infos = disc_conv_infos
         self.loaders = {
-            'A': Loader("imagesA", batch_size, a_dim, "NHWC"), #Number_batch, Height, Width, Channel
-            'B': Loader("imagesB", batch_size, b_dim, "NHWC")
+            'A': Loader("./imageA", batch_size, a_dim, "NHWC", file_type="jpg"), #Number_batch, Height, Width, Channel
+            'B': Loader("./imageB", batch_size, b_dim, "NHWC")
         }
 
     def build_generator(self, signature):
@@ -62,7 +62,7 @@ class DiscoGAN(object):
         out_dim = self.image_dims[signature[1]]
         
         
-        g = Generator(in_dim=in_dim, out_dim=out_dim, channel=self.channel, batch_size=self.batch_size,
+        g = Generator(in_dim=in_dim, out_dim=out_dim, channel=self.channel,
         conv_infos=self.gen_conv_infos, deconv_infos=self.gen_deconv_infos, signature=signature)
 
         setattr(self, 'G_' + signature, g)
@@ -72,14 +72,14 @@ class DiscoGAN(object):
 
         # Build Discriminator Class
         dim = self.image_dims[signature]
-        d = Discriminator(dim=dim, channel=self.channel, batch_size=self.batch_size,
+        d = Discriminator(dim=dim, channel=self.channel,
         conv_infos=self.disc_conv_infos, signature=signature)
         setattr(self, 'D_' + signature, d)
 
 
     def build_model(self):
         with tf.variable_scope('is_training'):
-            is_training = tf.get_variable('is_training', dtype=tf.bool)
+            is_training = tf.get_variable('is_training', dtype=tf.bool, initializer=True)
 
         # Model Architecture
         
@@ -89,21 +89,21 @@ class DiscoGAN(object):
         self.build_discriminator(signature = 'B') # Init D_B
 
         # Domain_A -> Domain_B   &&   Domain_B -> Domain_A
-        self.x_AB = G_AB.build_model(self.loaders['A']) # Put x_A and generate x_AB
-        self.x_BA = G_BA.build_model(self.loaders['B']) # Put x_B and generate x_BA
+        self.x_AB = self.G_AB.build_model(self.loaders['A'].get_image_from_loader(self.sess)) # Put x_A and generate x_AB
+        self.x_BA = self.G_BA.build_model(self.loaders['B'].get_image_from_loader(self.sess)) # Put x_B and generate x_BA
 
         # Resconstruct 
-        self.x_ABA = G_BA.build_model(self.x_AB) # Put x_AB and generate x_ABA
-        self.x_BAB = G_BA.build_model(self.x_BA) # Put x_AB and generate x_ABA
+        self.x_ABA = self.G_BA.build_model(self.x_AB) # Put x_AB and generate x_ABA
+        self.x_BAB = self.G_BA.build_model(self.x_BA) # Put x_AB and generate x_ABA
 
 
         # Discriminate real images
-        self.logits_real_A = D_A.build_model(self.x_A)  # Discriminate x_A
-        self.logits_real_B = D_B.build_model(self.x_B)  # Discriminate x_B
+        self.logits_real_A = self.D_A.build_model(self.x_A)  # Discriminate x_A
+        self.logits_real_B = self.D_B.build_model(self.x_B)  # Discriminate x_B
 
         # Discriminate generated imaages
-        self.logits_fake_A = D_A.build_model(self.x_BA)  # Discriminate x_BA
-        self.logits_fake_B = D_B.build_model(self.x_AB)  # Discriminate x_AB
+        self.logits_fake_A = self.D_A.build_model(self.x_BA)  # Discriminate x_BA
+        self.logits_fake_B = self.D_B.build_model(self.x_AB)  # Discriminate x_AB
 
 
 
@@ -142,6 +142,7 @@ class DiscoGAN(object):
         self.eps = epsilon
         self.sess = tf.Session()
         self.iteration = iteration
+        print('gere')
 
         """     
         To Do
@@ -215,7 +216,6 @@ class DiscoGAN(object):
 
         
         for step in range(self.iteration):
-
             """ Pseudo code
                 images_A = get_next_batch(images_A)
                 images_B = get_next_batch(images_B)
