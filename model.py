@@ -6,7 +6,7 @@ import tensorflow as tf
 from loader import Loader, save_image
 from generator import Generator
 from discriminator import Discriminator
-from util import lrelu, conv_information, batch_norm
+from util import lrelu, batch_norm
 
 
 '''
@@ -51,8 +51,8 @@ class DiscoGAN(object):
         self.gen_deconv_infos = gen_deconv_infos
         self.disc_conv_infos = disc_conv_infos
         self.loaders = {
-            'A': Loader("./imageA", batch_size, a_dim, "NHWC", file_type="jpg"), #Number_batch, Height, Width, Channel
-            'B': Loader("./imageB", batch_size, b_dim, "NHWC")
+            'A': Loader("./miniA", batch_size, a_dim, "NHWC", file_type="jpg"), #Number_batch, Height, Width, Channel
+            'B': Loader("./miniB", batch_size, b_dim, "NHWC", file_type="jpg")
         }
 
     def build_generator(self, signature):
@@ -89,21 +89,21 @@ class DiscoGAN(object):
         self.build_discriminator(signature = 'B') # Init D_B
 
         # Domain_A -> Domain_B   &&   Domain_B -> Domain_A
-        self.x_AB = self.G_AB.build_model(self.loaders['A'].get_image_from_loader(self.sess)) # Put x_A and generate x_AB
-        self.x_BA = self.G_BA.build_model(self.loaders['B'].get_image_from_loader(self.sess)) # Put x_B and generate x_BA
+        self.x_AB = self.G_AB.build_model(self.loaders['A'].queue) # Put x_A and generate x_AB
+        self.x_BA = self.G_BA.build_model(self.loaders['B'].queue) # Put x_B and generate x_BA
 
         # Resconstruct 
-        self.x_ABA = self.G_BA.build_model(self.x_AB) # Put x_AB and generate x_ABA
-        self.x_BAB = self.G_BA.build_model(self.x_BA) # Put x_AB and generate x_ABA
+        self.x_ABA = self.G_BA.build_model(self.x_AB, reuse=True) # Put x_AB and generate x_ABA
+        self.x_BAB = self.G_AB.build_model(self.x_BA, reuse=True) # Put x_AB and generate x_ABA
 
 
         # Discriminate real images
-        self.logits_real_A = self.D_A.build_model(self.x_A)  # Discriminate x_A
-        self.logits_real_B = self.D_B.build_model(self.x_B)  # Discriminate x_B
+        self.logits_real_A = self.D_A.build_model(self.loaders['A'].queue)  # Discriminate x_A
+        self.logits_real_B = self.D_B.build_model(self.loaders['B'].queue)  # Discriminate x_B
 
         # Discriminate generated imaages
-        self.logits_fake_A = self.D_A.build_model(self.x_BA)  # Discriminate x_BA
-        self.logits_fake_B = self.D_B.build_model(self.x_AB)  # Discriminate x_AB
+        self.logits_fake_A = self.D_A.build_model(self.x_BA, reuse=True)  # Discriminate x_BA
+        self.logits_fake_B = self.D_B.build_model(self.x_AB, reuse=True)  # Discriminate x_AB
 
 
 
@@ -120,8 +120,8 @@ class DiscoGAN(object):
         self.Generator_loss_B = -tf.log(self.logits_fake_B) #L_GAN_B : Loss of generator(G_AB) trying to decive discriminator(D_A)
 
         #Reconstruction Loss : Three candidates according to the paper -> L1_norm, L2_norm, Huber Loss
-        self.Reconstruction_loss_A = tf.nn.l2_loss(tf.subtract(self.x_ABA, x_A, name="Reconstruct_Error")) #L_CONST_A
-        self.Reconstruction_loss_B = tf.nn.l2_loss(tf.subtract(self.x_BAB, x_B, name="Reconstruct_Error")) #L_CONST_B
+        self.Reconstruction_loss_A = tf.nn.l2_loss(tf.subtract(self.x_ABA, self.loaders['A'].queue, name="Reconstruct_Error")) #L_CONST_A
+        self.Reconstruction_loss_B = tf.nn.l2_loss(tf.subtract(self.x_BAB, self.loaders['B'].queue, name="Reconstruct_Error")) #L_CONST_B
           #for L1_norm : tf.losses.absolute_differences(labels, predictions)
 
         #Total Loss
@@ -191,14 +191,9 @@ class DiscoGAN(object):
 
         saver = tf.train.Saver(max_to_keep=1000)
 
-        self.sess.run(tf.global_variables_initializer()) #run init
-            
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=sess, coord=coord) # queue runners
-
         summary = tf.summary.merge_all() #merege summaries
 
-        writer = tf.summary.FileWriter('./logs', sess.graph) # add the graph to the file './logs'
+        writer = tf.summary.FileWriter('./logs', self.sess.graph) # add the graph to the file './logs'
 
         """
         --------To Do----------
@@ -210,8 +205,8 @@ class DiscoGAN(object):
 
         """
 
-        with tf.variable_scope('is_training'):
-            is_training = tf.get_variable('is_training')
+        with tf.variable_scope('is_training', reuse=True):
+            is_training = tf.get_variable('is_training', dtype=tf.bool)
             self.sess.run(tf.assign(is_training, True))
 
         
@@ -220,6 +215,7 @@ class DiscoGAN(object):
                 images_A = get_next_batch(images_A)
                 images_B = get_next_batch(images_B)
             """    
+            print('iter')
 
             self.sess.run([optimize_G, optimize_D])
                         

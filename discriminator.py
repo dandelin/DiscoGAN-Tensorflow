@@ -1,5 +1,5 @@
 import tensorflow as tf
-from util import lrelu, conv_information, batch_norm
+from util import lrelu, batch_norm
 
 class Discriminator(object):
     """
@@ -24,26 +24,26 @@ class Discriminator(object):
             if reuse:
                 scope.reuse_variables()
 
-            conv_infos = conv_information(self.conv_infos) #make conv_infos instance
-
             prev = image
 
-            for i, conv_info in enumerate(conv_infos):
+            for i in range(self.conv_infos['conv_layer_number']):
                 """
                     filter = 4 x 4, strides = [1, stride, stride, 1]
                     add batch normalization
                     add tensorboard summaries
                 """
-                conv = tf.nn.conv2d(prev, conv_infos.filter[i], conv_infos.stride[i],
-                                    padding="SAME", name="g_conv_" + str(i))
+                weight = tf.get_variable('conv_weight_' + str(i), shape=self.conv_infos['filter'][i], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+                setattr(self, "conv_weight_" + str(i), weight)
+
+                conv = tf.nn.conv2d(prev, weight, self.conv_infos['stride'][i], padding="SAME", name="d_conv_" + str(i))
                 setattr(self, "conv_" + str(i), conv)
 
-                if i == conv_info.conv_layer_number - 1:
+                if i == self.conv_infos['conv_layer_number'] - 1:
                     # no batch_norm and leaky relu activation at the last layer
                     return tf.sigmoid(conv)
 
                 else:
-                    bn = batch_norm(name='g_bn_' + str(i))
+                    bn = batch_norm(name='d_bn_' + str(i))
                     setattr(self, "bn_" + str(i), bn)
 
                     # arg "phase" has to be specified whether it is training or test session

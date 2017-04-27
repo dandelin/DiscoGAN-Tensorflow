@@ -1,5 +1,5 @@
 import tensorflow as tf
-from util import lrelu, conv_information, batch_norm
+from util import lrelu, batch_norm
 
 class Generator(object):
     def __init__(
@@ -38,25 +38,23 @@ class Generator(object):
         with tf.variable_scope("G_" + self.signature) as scope:
             if reuse:
                 scope.reuse_variables()
-                
             
-            conv_infos = conv_information(self.conv_infos) #make instance
-
-
             prev = image
 
-            for i, conv_info in enumerate(conv_infos):
+            for i in range(self.conv_infos['conv_layer_number']):
                 """
                     filter = 4 x 4, strides = [1, stride, stride, 1]
                     add batch normalization
                     add tensorboard summaries
                 """
-                conv = tf.nn.conv2d(prev, conv_info.filter[i], conv_info.stride[i],
-                    padding="SAME", name="g_conv_" + str(i))
+                weight = tf.get_variable('conv_weight_' + str(i), shape=self.conv_infos['filter'][i], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+                setattr(self, "conv_weight_" + str(i), weight)
+
+                conv = tf.nn.conv2d(prev, weight, self.conv_infos['stride'][i], padding="SAME", name="g_conv_" + str(i))
                 setattr(self, "conv_" + str(i), conv)
 
-                bn = batch_norm(name='g_bn_' + str(i))
-                setattr(self, "bn_" + str(i), bn) 
+                bn = batch_norm(name='conv_bn_' + str(i))
+                setattr(self, "conv_bn_" + str(i), bn) 
 
                 normalized_layer = bn(conv, phase=is_training)      # arg "phase" has to be specified whether it is training or test session         
 
@@ -64,26 +62,24 @@ class Generator(object):
 
                 prev = activated_conv
 
-            
-            deconv_infos = conv_information(self.deconv_infos)
-
-
-            for i, deconv_info in enumerate(deconv_infos):
+            for i in range(self.deconv_infos['conv_layer_number']):
                 """
                     filter = 4 x 4, output_shape, strides = [1, stride, stride, 1]
                     add batch normalization
                     add tensorboard summaries
                 """
-                conv_t = tf.nn.conv2d_transpose(prev, deconv_info.filter[i], self.out_dim, deconv_info.stride[i],
-                    padding="SAME", name="g_deconv_" + str(i))
+                weight = tf.get_variable('deconv_weight_' + str(i), shape=self.deconv_infos['filter'][i], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+                setattr(self, "deconv_weight_" + str(i), weight)
                 
-                if i == deconv_infos.conv_layer_number - 1:
+                conv_t = tf.nn.conv2d_transpose(prev, weight, self.deconv_infos['output_dims'][i], self.deconv_infos['stride'][i], padding="SAME", name="g_deconv_" + str(i))
+                print(conv_t)
+                if i == self.deconv_infos['conv_layer_number'] - 1:
                     return tf.sigmoid(conv_t)
 
-                bn = batch_norm(name='g_bn_' + str(i))
-                setattr(self, "bn_" + str(i), bn) 
+                bn = batch_norm(name='deconv_bn_' + str(i))
+                setattr(self, "deconv_bn_" + str(i), bn) 
 
-                normalized_layer = bn(conv, phase=is_training)              # arg "phase" has to be specified whether it is training or test session  
+                normalized_layer = bn(conv_t, phase=is_training)              # arg "phase" has to be specified whether it is training or test session  
 
                 activated_conv = tf.nn.relu(normalized_layer) # Right after conv layer, relu function has not yet specified.
 
