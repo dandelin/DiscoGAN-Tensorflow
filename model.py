@@ -2,11 +2,11 @@ import os
 import math
 import random
 import tensorflow as tf
+
 from loader import Loader, save_image
-
-
-from custom_activation import lrelu
-
+from generator import Generator
+from discriminator import Discriminator
+from util import lrelu, conv_information, batch_norm
 
 
 '''
@@ -25,8 +25,8 @@ gen_conv_infos = { "conv_layer_number": 4, "filter":[[4,4,3,64],[4,4,64,64*2],[4
 
 class DiscoGAN(object):
     def __init__(
-        self, sess, a_dim=(64, 64), b_dim=(64, 64), channel=3, batch_size=64,
-        gen_conv_infos, gen_deconv_infos, disc_conv_infos, phase = True      # Phase default : True (Training) 
+        self, sess, gen_conv_infos, gen_deconv_infos, disc_conv_infos,
+        a_dim=(64, 64), b_dim=(64, 64), channel=3, batch_size=64, phase = True      # Phase default : True (Training) 
     ):
         """
         Arguments :
@@ -52,7 +52,7 @@ class DiscoGAN(object):
         self.disc_conv_infos = disc_conv_infos
         self.loaders = {
             'A': Loader("imagesA", batch_size, a_dim, "NHWC"),
-            'B':Loader("imagesB", batch_size, b_dim, "NHWC")
+            'B': Loader("imagesB", batch_size, b_dim, "NHWC")
         }
 
     def build_generator(self, signature):
@@ -70,13 +70,13 @@ class DiscoGAN(object):
 
 
 
-    def build_discriminator(self, set_name):
+    def build_discriminator(self, signature):
 
         # Build Discriminator Class
-        dim = self.image_dims[signature[set_name]]
+        dim = self.image_dims[signature]
         d = Discriminator(dim=dim, channel=self.channel, batch_size=self.batch_size,
-        conv_infos=self.disc_conv_infos, set_name=set_name)
-        setattr(self, 'D_' + set_name, d)
+        conv_infos=self.disc_conv_infos, signature=signature)
+        setattr(self, 'D_' + signature, d)
 
 
     def build_model(self, images_A, images_B):
@@ -148,7 +148,7 @@ class DiscoGAN(object):
         self.sess = tf.Session()
         self.epoch = epoch
 
-"""     
+        """     
         To Do
         
         Fetch Data using queue and feed it to self.images
@@ -164,7 +164,7 @@ class DiscoGAN(object):
         img_B = data_loader()
         self.build_model(self, images_A, images_B)
 
-"""
+        """
 
         trainable_variables = tf.trainable_variables() # get all variables that were checked "trainable = True"
 
@@ -218,10 +218,10 @@ class DiscoGAN(object):
             
             for step in range(self.epoch):
 
-            """ Pseudo code
-                images_A = get_next_batch(images_A)
-                images_B = get_next_batch(images_B)
-            """    
+                """ Pseudo code
+                    images_A = get_next_batch(images_A)
+                    images_B = get_next_batch(images_B)
+                """    
 
                 Generator_loss, Discriminator_loss = self.buildmodel(images_A, images_B)
                 sess.run([optimize_G, optimize_D, self.Generator_loss, self.Discriminator_loss], \
@@ -234,199 +234,3 @@ class DiscoGAN(object):
                 if step % 10 == 0:
                     checkpoint_path = "/home/choi/Documents/git/DiscoGAN-Tensorflow/Checkpoint"
                     saver.save(sess, checkpoint_path, global_step = step)
-
-
-class Generator(object):
-    def __init__(
-        self, in_dim=(64, 64), out_dim=(64, 64), channel=3, batch_size=64,
-        conv_infos, deconv_infos, bn_number, signature='AB'
-    ):
-        """
-        Arguments :
-            x_dim : (height, width) information of set X
-            channel : 3 (RGB), 1 (Greyscale, Spectrogram)
-            batch_size : minibatch size
-            conv_infos : convolutional layer's informations
-            deconv_infos : deconvolutional layer's informations
-            signature : Instance's name like G_AB
-        """
-        self.sess = sess
-        self.batch_size = batch_size
-        
-        self.in_dim = in_dim
-        self.a_height = in_dim[0]
-        self.a_width = in_dim[1]
-        
-        self.out_dim = out_dim
-        self.b_height = out_dim[0]
-        self.b_width = out_dim[1]
-        
-        self.channel = channel
-        self.signature = signature
-
-        self.conv_infos = conv_infos
-        self.deconv_infos = deconv_infos
-    
-
-    def build_model(self, image, reuse=False):
-        with tf.variable_scope("G_" + self.signature) as scope:
-            if reuse:
-                scope.reuse_variables()
-                
-            
-            conv_infos = conv_information(self.conv_infos) #make instance
-
-
-            prev = image
-
-            for i, conv_info in enumerate(conv_infos):
-                """
-                    filter = 4 x 4, strides = [1, stride, stride, 1]
-                    add batch normalization
-                    add tensorboard summaries
-                """
-                conv = tf.nn.conv2d(prev, conv_info.filter[i], conv_info.strides[i],
-                    padding="SAME", name="g_conv_" + str(i))
-                setattr(self, "conv_" + str(i), conv)
-
-                bn = batch_norm(name='g_bn_' + str(i))
-                setattr(self, "bn_" + str(i), bn) 
-
-                normalized_layer = bn(conv)      # arg "phase" has to be specified whether it is training or test session         
-
-                activated_conv = lrelu(normalized_layer) #Right after conv layer, relu function has not yet specified.
-
-                prev = activated_conv
-
-
-
-
-            for i, dconv_info in enumerate(deconv_infos):
-                """
-                    filter = 4 x 4, output_shape, strides = [1, stride, stride, 1]
-                    add batch normalization
-                    add tensorboard summaries
-                """
-                conv_t = tf.nn.conv2d_transpose(prev, filter, output_shape, strides,
-                    padding="SAME", name="g_deconv_" + str(i))
-
-                bn = batch_norm(name='g_bn_' + str(i))
-                setattr(self, "bn_" + str(i), bn) 
-
-                normalized_layer = bn(conv)              # arg "phase" has to be specified whether it is training or test session  
-
-                activated_conv = lrelu(normalized_layer) # Right after conv layer, relu function has not yet specified.
-
-
-                prev = conv_t
-
-
-        Generated = prev 
-
-        return Generated
-
-
-class Discriminator(object):
-    def __init__(
-        self, dim=(64, 64), channel=3, batch_size=64, conv_infos, signature=None
-        ):
-        """
-        Arguments :
-            dim : (height, width) information
-            channel : 3 (RGB), 1 (Greyscale, Spectrogram)
-            batch_size : minibatch size
-            conv_infos : convolutional layer's informations
-            signature : Instance's name like D_A
-        """
-        self.batch_size = batch_size
-        
-        self.dim = dim
-        
-        self.channel = channel
-        self.signature = signature
-        self.conv_infos = conv_infos
-    
-    def build_model(self, image, reuse=False):
-        """ TO DO """
-        with tf.variable_scope("D_" + self.signature) as scope:
-            if reuse:
-                scope.reuse_variables()
-                
-            
-            conv_infos = conv_information(self.conv_infos) #make conv_infos instance
-
-
-            prev = image
-
-            for i, conv_info in enumerate(conv_infos):
-                """
-                    filter = 4 x 4, strides = [1, stride, stride, 1]
-                    add batch normalization
-                    add tensorboard summaries
-                """
-                conv = tf.nn.conv2d(prev, conv_infos.filter[i], conv_infos.strides[i],
-                    padding="SAME", name="g_conv_" + str(i))
-                setattr(self, "conv_" + str(i), conv)
-
-                if i == self.conv_layer_number-1 :
-                    
-
-                    Discriminated = tf.sigmoid(conv)  # no batch_norm and leaky relu activation at the last layer
-
-
-                else :
-                    
-                    bn = batch_norm(name='g_bn_' + str(i))
-                    setattr(self, "bn_" + str(i), bn) 
-
-                    normalized_layer = bn(conv)      # arg "phase" has to be specified whether it is training or test session         
-
-                    activated_conv = lrelu(normalized_layer) #Right after conv layer, relu function has not yet specified.
-
-                    prev = activated_conv
-
-
-        return Discriminated
-
-
-
-
-
-class batch_norm(object):
-    def __init__(self, epsilon = 0.001, momentum = 0.99, name = "batch_norm"):
-        self.epsilon = epsilon
-        self.momentum = momentum
-        self.name = name
-
-    def __call__(self, x, phase = None):   # If phase == True, then training phase. If phase == False, then test phase.
-        tf.contrib.layers.batch_norm(x,
-                      decay=self.momentum,  #The more you have your data, the bigger the momentum has to be
-                      updates_collections=None, 
-                      epsilon=self.epsilon,
-                      scale=True,  # If next layer is linear like "Relu", this can be set as "False". Because You don't really need gamma in this case.
-                      is_training=phase,  # Training mode or Test mode 
-                      scope=self.name)
-
-
-
-
-class conv_information(object):
-    
-    def __init__(self, conv_infos):
-        self.conv_layer_number = conv_infos["conv_layer_number"]
-        self.filter = conv_infos["filter"]
-        self.stride = conv_stride["stride"]
-        self.current = 0
- 
-    
-    def __iter__(self):
-        return self
-    
-    def next(self):
-        
-        if self.current >= self.conv_layer_number:
-            raise StopIteration
-        else:
-            self.current += 1
-            return self
-
