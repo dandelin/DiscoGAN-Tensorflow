@@ -6,7 +6,7 @@ import tensorflow as tf
 from loader import Loader, save_image
 from generator import Generator
 from discriminator import Discriminator
-from util import lrelu, batch_norm
+from util import ReconstructionLoss, GANLoss
 
 class DiscoGAN(object):
     def __init__(
@@ -37,33 +37,23 @@ class DiscoGAN(object):
         self.disc_conv_infos = disc_conv_infos
 
     def build_generator(self, signature):
-
-        # Build Generator Class
-        in_dim = self.image_dims[signature[0]]
-        out_dim = self.image_dims[signature[1]]
-        
-        
-        g = Generator(in_dim=in_dim, out_dim=out_dim, channel=self.channel,
-        conv_infos=self.gen_conv_infos, deconv_infos=self.gen_deconv_infos, signature=signature)
-
+        g = Generator(conv_infos=self.gen_conv_infos, deconv_infos=self.gen_deconv_infos, signature=signature)
         setattr(self, 'G_' + signature, g)
+        return g
 
 
     def build_discriminator(self, signature):
-
-        # Build Discriminator Class
-        dim = self.image_dims[signature]
-        d = Discriminator(dim=dim, channel=self.channel,
-        conv_infos=self.disc_conv_infos, signature=signature)
+        d = Discriminator(conv_infos=self.disc_conv_infos, signature=signature)
         setattr(self, 'D_' + signature, d)
+        return d
 
 
     def build_model(self):
         with tf.variable_scope('is_training'):
             is_training = tf.get_variable('is_training', dtype=tf.bool, initializer=True)
 
-        self.x_A = Loader("./miniA", self.batch_size, self.image_dims['A'], "NHWC", file_type="jpg").queue
-        self.x_B = Loader("./miniB", self.batch_size, self.image_dims['B'], "NHWC", file_type="jpg").queue
+        self.x_A = Loader("./imageA", self.batch_size, self.image_dims['A'], "NHWC", file_type="jpg").queue
+        self.x_B = Loader("./imageB", self.batch_size, self.image_dims['B'], "NHWC", file_type="jpg").queue
 
         # Model Architecture
         self.build_generator(signature = 'AB') # Init G_AB
@@ -85,32 +75,65 @@ class DiscoGAN(object):
         self.logits_real_B = self.D_B.build_model(self.x_B)  # Discriminate x_B
 
         # Discriminate generated imaages
-        self.logits_fake_A = self.D_A.build_model(self.x_BA, reuse=True)  # Discriminate x_BA
-        self.logits_fake_B = self.D_B.build_model(self.x_AB, reuse=True)  # Discriminate x_AB
+        self.logits_fake_BA = self.D_A.build_model(self.x_BA, reuse=True)  # Discriminate x_BA
+        self.logits_fake_AB = self.D_B.build_model(self.x_AB, reuse=True)  # Discriminate x_AB
 
         ####### Loss #######
 
-        #Discriminator Loss
-        self.Discriminator_loss_A = -tf.log(self.logits_real_A) -tf.log(1-self.logits_fake_A) #L_D_A
-        self.Discriminator_loss_B = -tf.log(self.logits_real_B) -tf.log(1-self.logits_fake_B) #L_D_B
+        # Real / Fake GAN loss A
+        self.loss_real_A = GANLoss(logits=self.logits_real_A, is_real=True)
+        self.loss_fake_A = GANLoss(logits=self.logits_fake_BA, is_real=False)
         
+        # Real / Fake GAN loss B
+        self.loss_real_B = GANLoss(logits=self.logits_real_B, is_real=True)
+        self.loss_fake_B = GANLoss(logits=self.logits_fake_AB, is_real=False)
 
-        #Generator Loss
-        self.Generator_loss_A = -tf.log(self.logits_fake_A) #L_GAN_A : Loss of generator(G_BA) trying to decive discriminator(D_B)
-        self.Generator_loss_B = -tf.log(self.logits_fake_B) #L_GAN_B : Loss of generator(G_AB) trying to decive discriminator(D_A)
+        # Losses of Discriminator
+        self.loss_Discriminator_A = self.loss_real_A + self.loss_fake_A # L_D_A in paper notation
+        self.loss_Discriminator_B = self.loss_real_B + self.loss_fake_B # L_D_B in paper notation
+
+        # Generator GAN Loss
+        self.loss_GAN_AB = GANLoss(logits=self.logits_fake_AB, is_real=True)
+        self.loss_GAN_BA = GANLoss(logits=self.logits_fake_BA, is_real=True)
 
         #Reconstruction Loss : Three candidates according to the paper -> L1_norm, L2_norm, Huber Loss
-        self.Reconstruction_loss_A = tf.nn.l2_loss(tf.subtract(self.x_ABA, self.x_A, name="Reconstruct_Error")) #L_CONST_A
-        self.Reconstruction_loss_B = tf.nn.l2_loss(tf.subtract(self.x_BAB, self.x_B, name="Reconstruct_Error")) #L_CONST_B
-          #for L1_norm : tf.losses.absolute_differences(labels, predictions)
+        self.Reconstruction_loss_A = ReconstructionLoss(self.x_A, self.x_ABA) #L_CONST_A
+        self.Reconstruction_loss_B = ReconstructionLoss(self.x_B, self.x_BAB) #L_CONST_B
+
+        # Generator Loss
+        self.loss_Generator_AB = self.loss_GAN_AB + self.Reconstruction_loss_A
+        self.loss_Generator_BA = self.loss_GAN_BA + self.Reconstruction_loss_B
 
         #Total Loss
-        self.Discriminator_loss = self.Discriminator_loss_A + self.Discriminator_loss_B #L_D = L_D_A + L_D_B
-        self.Generator_loss = (self.Generator_loss_B + self.Reconstruction_loss_A) + \
-                        (self.Generator_loss_A + self.Reconstruction_loss_B)  #L_G = L_G_AB + L_G_BA = (L_GAN_B + L_CONST_A) + (L_GAN_A + L_CONST_B)
+        self.loss_Discriminator = self.loss_Discriminator_A + self.loss_Discriminator_B #L_D = L_D_A + L_D_B
+        self.loss_Generator = self.loss_Generator_AB + self.loss_Generator_BA  #L_G = L_G_AB + L_G_BA = (L_GAN_B + L_CONST_A) + (L_GAN_A + L_CONST_B)
+
+        trainable_variables = tf.trainable_variables() # get all variables that were checked "trainable = True"
+        self.G_vars = [var for var in trainable_variables if 'G_' in var.name]        
+        self.D_vars = [var for var in trainable_variables if 'D_' in var.name]
         
-        self.dl_summary = tf.summary.scalar('Discriminator_loss', tf.reduce_mean(self.Discriminator_loss))
-        self.gl_summary = tf.summary.scalar('Generator_loss', tf.reduce_mean(self.Generator_loss))
+        # Add summaries.
+        # Add loss summaries
+        tf.summary.scalar("losses/loss_Discriminator", self.loss_Discriminator)
+        tf.summary.scalar("losses/loss_Discriminator_A", self.loss_Discriminator_A)
+        tf.summary.scalar("losses/loss_Discriminator_B", self.loss_Discriminator_B)
+        tf.summary.scalar("losses/loss_Generator", self.loss_Generator)
+        tf.summary.scalar("losses/loss_Generator_AB", self.loss_Generator_AB)
+        tf.summary.scalar("losses/loss_Generator_BA", self.loss_Generator_BA)
+
+        # Add histogram summaries
+        for var in self.D_vars:
+            tf.summary.histogram(var.op.name, var)
+        for var in self.G_vars:
+            tf.summary.histogram(var.op.name, var)
+
+        # Add image summaries
+        tf.summary.image('x_A', self.x_A, max_outputs=4)
+        tf.summary.image('x_B', self.x_B, max_outputs=4)
+        tf.summary.image('x_AB', self.x_AB, max_outputs=4)
+        tf.summary.image('x_BA', self.x_BA, max_outputs=4)
+        tf.summary.image('x_ABA', self.x_ABA, max_outputs=4)
+        tf.summary.image('x_BAB', self.x_BAB, max_outputs=4)
 
     def train(self, learning_rate = 0.002, beta1 = 0.5, beta2 = 0.999, epsilon = 1e-08, iteration = 10000000):
         """ TO DO """
@@ -121,16 +144,6 @@ class DiscoGAN(object):
         self.sess = tf.Session()
         self.iteration = iteration
 
-        trainable_variables = tf.trainable_variables() # get all variables that were checked "trainable = True"
-
-        self.Generator_variables = [var for var in trainable_variables if 'G_' in var.name]        
-        self.Discriminator_variables = [var for var in trainable_variables if 'D_' in var.name]
-
-        # for var in self.Generator_variables:
-        #     print(var.name)
-        # for var in self.Discriminator_variables:
-        #     print(var.name)
-
         # Optimizer for Generator and Descriminator each
         optimizer_G = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
         optimizer_D = tf.train.AdamOptimizer(learning_rate = self.lr, beta1=self.B1, beta2 = self.B2, epsilon = self.eps )
@@ -140,8 +153,8 @@ class DiscoGAN(object):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) #To force update moving average and variance
 
         with tf.control_dependencies(update_ops): # Ensures that we execute the update_ops before performing the train_step
-            optimize_G = optimizer_G.minimize(self.Generator_loss, global_step = global_step, var_list = self.Generator_variables)
-            optimize_D = optimizer_D.minimize(self.Discriminator_loss, global_step = global_step, var_list = self.Discriminator_variables)
+            optimize_G = optimizer_G.minimize(self.loss_Generator, global_step = global_step, var_list = self.G_vars)
+            optimize_D = optimizer_D.minimize(self.loss_Discriminator, global_step = global_step, var_list = self.D_vars)
 
         saver = tf.train.Saver(max_to_keep=1000)
 
@@ -161,13 +174,15 @@ class DiscoGAN(object):
         for step in range(self.iteration):
             if coord.should_stop():
                 break
-            print('iter')
 
             _, _, summary_run = self.sess.run([optimize_G, optimize_D, summary])
-                        
-            writer.add_summary(summary_run, step)
-                
+            
             if step % 50 == 0:
-                saver.save(self.sess, os.path.join(os.getcwd(), "model.ckpt"), global_step = step)
+                writer.add_summary(summary_run, step)
+                save_image(self.sess.run(self.x_A), 'results/A{}.png'.format(step))
+                save_image(self.sess.run(self.x_AB), 'results/AB{}.png'.format(step))
+                
+            if step % 500 == 0:
+                saver.save(self.sess, "checkpoint/model.ckpt", global_step = step)
         coord.request_stop()
         coord.join(threads)

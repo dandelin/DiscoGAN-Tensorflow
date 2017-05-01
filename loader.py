@@ -57,7 +57,7 @@ class Loader(object):
         else:
             raise Exception("[!] Unkown data_format: {}".format(self.data_format))
 
-        self.queue = tf.to_float(queue)
+        self.queue = tf.to_float(queue) / 255
 
     def get_image_from_loader(self, sess):
         x = self.queue.eval(session=sess)
@@ -88,7 +88,7 @@ def make_grid(tensor, nrow=8, padding=2,
             h, h_width = y * height + 1 + padding // 2, height - padding
             w, w_width = x * width + 1 + padding // 2, width - padding
 
-            grid[h:h+h_width, w:w+w_width] = tensor[k]
+            grid[h:h+h_width, w:w+w_width] = tensor[k] * 255
             k = k + 1
     return grid
         

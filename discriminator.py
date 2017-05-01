@@ -1,5 +1,5 @@
 import tensorflow as tf
-from util import lrelu, batch_norm
+from util import lrelu, conv_layer, conv_layer_t, batch_norm
 
 class Discriminator(object):
     def __init__(self, conv_infos, dim=(64, 64), channel=3, signature=None):
@@ -16,22 +16,18 @@ class Discriminator(object):
             if reuse:
                 scope.reuse_variables()
 
+            conv_num = self.conv_infos['conv_layer_number']
+            conv_filter = self.conv_infos['filter']
+            conv_stride = self.conv_infos['stride']
+
             prev = image
 
-            for i in range(self.conv_infos['conv_layer_number']):
-                weight = tf.get_variable('conv_weight_' + str(i), shape=self.conv_infos['filter'][i], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
-                setattr(self, "conv_weight_" + str(i), weight)
-
-                conv = tf.nn.conv2d(prev, weight, self.conv_infos['stride'][i], padding="SAME", name="d_conv_" + str(i))
-                setattr(self, "conv_" + str(i), conv)
-
-                if i == self.conv_infos['conv_layer_number'] - 1:
-                    return tf.sigmoid(conv)
-
+            for i in range(conv_num):
+                if i != 0 or i == conv_num - 1:
+                    prev = conv_layer(prev, conv_filter[i], "d_conv_{}".format(i), activation=lrelu, batch_norm=None, reuse=reuse)
                 else:
-                    bn = batch_norm(name='d_bn_' + str(i))
-                    setattr(self, "bn_" + str(i), bn)
+                    bn = batch_norm(name="d_bn_{}".format(i))
+                    prev = conv_layer(prev, conv_filter[i], "d_conv_{}".format(i), activation=lrelu, batch_norm=bn, reuse=reuse)
 
-                    normalized_layer = bn(conv, phase = is_training)
-                    activated_conv = lrelu(normalized_layer)
-                    prev = activated_conv
+                setattr(self, "conv_{}".format(i), prev)
+            return prev

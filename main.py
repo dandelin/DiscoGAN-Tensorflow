@@ -2,7 +2,7 @@ from model import DiscoGAN
 from loader import Loader, save_image
 import tensorflow as tf
 
-batch_size = 8
+batch_size = 128
 
 gen_conv_infos = {
     "conv_layer_number": 4,
@@ -11,31 +11,24 @@ gen_conv_infos = {
         [4,4,64,64*2],
         [4,4,64*2,64*4],
         [4,4,64*4,64*8],
-        #[4,4,64*8,100],
     ],
     "stride" : [
-        #[1,2,2,1],
         [1,2,2,1],
         [1,2,2,1],
         [1,2,2,1],
         [1,2,2,1],
     ],
-    # "padding": [
-    #     1, 1, 1, 1
-    # ]
 }
 
 gen_deconv_infos = {
     "conv_layer_number": 4,
     "filter":[
-        #[4,4,100,64*8],
         [4,4,64*4,64*8],
         [4,4,64*2,64*4],
         [4,4,64*1,64*2],
         [4,4,3,64],
     ],
     "stride" : [
-        #[1,2,2,1],
         [1,2,2,1],
         [1,2,2,1],
         [1,2,2,1],
@@ -47,9 +40,6 @@ gen_deconv_infos = {
         [batch_size, 32, 32, 64*1],
         [batch_size, 64, 64, 3]
     ],
-    # "padding" : [
-    #     1, 1, 1, 1
-    # ]
 }
 
 disc_conv_infos = {
@@ -68,9 +58,6 @@ disc_conv_infos = {
         [1,2,2,1],
         [1,1,1,1],
     ],
-    # "padding": [
-    #     1, 1, 1, 1
-    # ]
 }
 
 if __name__ == "__main__":
