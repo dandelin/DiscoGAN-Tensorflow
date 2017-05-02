@@ -39,7 +39,7 @@ for audio in domain_A_file_list :
 
   
 
-    D = librosa.core.stft(y=y, n_fft=int(FFT_SIZE/2), hop_length=0, win_length=None, window='hann', center=True) # win_length = FFT_SIZE
+    D = librosa.core.stft(y=y, n_fft=FFT_SIZE, hop_length=int(FFT_SIZE/2), win_length=None, window='hann', center=True) # win_length = FFT_SIZE
     D = np.abs(D) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
     
