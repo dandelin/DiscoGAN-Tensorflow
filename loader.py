@@ -48,7 +48,7 @@ class Loader(object):
             num_threads=4, capacity=capacity,
             min_after_dequeue=min_after_dequeue, name='synthetic_inputs') 
 
-        queue = tf.image.resize_nearest_neighbor(queue, [self.scale_size[0], self.scale_size[1]])
+        queue = tf.image.resize_area(queue, [self.scale_size[0], self.scale_size[1]])
 
         if self.data_format == 'NCHW':
             queue = tf.transpose(queue, [0, 3, 1, 2])
@@ -57,7 +57,7 @@ class Loader(object):
         else:
             raise Exception("[!] Unkown data_format: {}".format(self.data_format))
 
-        self.queue = tf.to_float(queue) / 255
+        self.queue = tf.to_float(queue) / 255.0
 
     def get_image_from_loader(self, sess):
         x = self.queue.eval(session=sess)

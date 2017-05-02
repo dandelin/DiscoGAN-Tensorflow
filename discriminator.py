@@ -23,11 +23,11 @@ class Discriminator(object):
             prev = image
 
             for i in range(conv_num):
-                if i != 0 or i == conv_num - 1:
+                if i == 0 or i == conv_num - 1:
                     prev = conv_layer(prev, conv_filter[i], "d_conv_{}".format(i), activation=lrelu, batch_norm=None, reuse=reuse)
                 else:
                     bn = batch_norm(name="d_bn_{}".format(i))
                     prev = conv_layer(prev, conv_filter[i], "d_conv_{}".format(i), activation=lrelu, batch_norm=bn, reuse=reuse)
 
                 setattr(self, "conv_{}".format(i), prev)
-            return prev
+            return tf.sigmoid(prev)

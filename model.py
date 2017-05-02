@@ -160,7 +160,7 @@ class DiscoGAN(object):
 
         summary = tf.summary.merge_all() #merege summaries
 
-        writer = tf.summary.FileWriter('./logs', self.sess.graph) # add the graph to the file './logs'
+        writer = tf.summary.FileWriter('./logs2', self.sess.graph) # add the graph to the file './logs'
 
         with tf.variable_scope('is_training', reuse=True):
             is_training = tf.get_variable('is_training', dtype=tf.bool)
@@ -179,10 +179,10 @@ class DiscoGAN(object):
             
             if step % 50 == 0:
                 writer.add_summary(summary_run, step)
-                save_image(self.sess.run(self.x_A), 'results/A{}.png'.format(step))
-                save_image(self.sess.run(self.x_AB), 'results/AB{}.png'.format(step))
+                save_image(self.sess.run(self.x_A), 'results2/A{}.png'.format(step))
+                save_image(self.sess.run(self.x_AB), 'results2/AB{}.png'.format(step))
                 
             if step % 500 == 0:
-                saver.save(self.sess, "checkpoint/model.ckpt", global_step = step)
+                saver.save(self.sess, "checkpoint2/model.ckpt", global_step = step)
         coord.request_stop()
         coord.join(threads)

@@ -25,7 +25,7 @@ class Generator(object):
             prev = image
             
             for i in range(conv_num):
-                if i != 0:
+                if i == 0:
                     prev = conv_layer(prev, conv_filter[i], "g_conv_{}".format(i), activation=lrelu, batch_norm=None, reuse=reuse)
                 else:
                     bn = batch_norm(name="g_cbn_{}".format(i))
