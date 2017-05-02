@@ -2,7 +2,7 @@ import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from os import walk
+from os import walk, mkdir
 
 #FIX ME : write your data directory
 domain_A_path = "/Users/Adrian/Desktop/Domain_A"
@@ -64,6 +64,23 @@ print "Spectrogram B Shape : ", np.shape(Spectrogram_B_save[0])
 print "Number of Spectrograms in Domain_A : ", len(Spectrogram_A_save)
 print "Number of Spectrograms in Domain_B : ", len(Spectrogram_B_save)
 
+Spectrogram_A_save = np.array(Spectrogram_A_save) #(Numberofspectrograms,col,row)
+Spectrogram_B_save = np.array(Spectrogram_B_save)
+print(Spectrogram_A_save.shape)
+print(Spectrogram_B_save.shape)
+
+try:
+    for i, A in enumerate(Spectrogram_A_save):
+        A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
+    for i, B in enumerate(Spectrogram_B_save):
+        B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))
+except IOError :
+    mkdir("./spectrogram_files_A")
+    mkdir("./spectrogram_files_B")
+    for i, A in enumerate(Spectrogram_A_save):
+        A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
+    for i, B in enumerate(Spectrogram_B_save):
+        B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))   
 
 
 plt.figure(figsize=(10, 4))

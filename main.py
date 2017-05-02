@@ -1,5 +1,5 @@
 from model import DiscoGAN
-from loader import Loader, save_image
+from loader import Spectrogram_Loader, Loader, save_image
 import tensorflow as tf
 
 batch_size = 128
