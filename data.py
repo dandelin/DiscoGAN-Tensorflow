@@ -2,7 +2,10 @@ import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import tensorflow as tf
+
 from os import walk, mkdir
+
 
 #FIX ME : write your data directory
 domain_A_path = "/Users/Adrian/Desktop/Domain_A"
@@ -64,15 +67,26 @@ print("Spectrogram B Shape : ", np.shape(Spectrogram_B_save[0]))
 print("Number of Spectrograms in Domain_A : ", len(Spectrogram_A_save))
 print("Number of Spectrograms in Domain_B : ", len(Spectrogram_B_save))
 
-Spectrogram_A_save = np.array(Spectrogram_A_save) #(Numberofspectrograms,col,row)
-Spectrogram_B_save = np.array(Spectrogram_B_save)
-print(Spectrogram_A_save.shape)
-print(Spectrogram_B_save.shape)
+
+Spectrogram_A_save = np.array(Spectrogram_A_save, dtype = np.float32)
+Spectrogram_B_save = np.array(Spectrogram_B_save, dtype = np.float32)
+
+
+
+print("SHAPE_A : " , Spectrogram_A_save.shape) #(Numberofspecs,col,row)
+print("SHAPE_B : " , Spectrogram_B_save.shape)
+
+
 
 try:
     for i, A in enumerate(Spectrogram_A_save):
+        # np.savetxt("./spectrogram_files_A/spectrograms_A_{}.csv".format(i), A, delimiter = ",")
+        A = np.expand_dims(A, axis=2)
+        print(A.shape)
         A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
     for i, B in enumerate(Spectrogram_B_save):
+        B = np.expand_dims(B, axis=2)
+        # np.savetxt("./spectrogram_files_B/spectrograms_B_{}.csv".format(i), B, delimiter = ",")
         B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))
 except IOError :
     mkdir("./spectrogram_files_A")

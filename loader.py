@@ -104,7 +104,7 @@ class Spectrogram_Loader(object):
         self.batch_size = batch_size
         self.scale_size = scale_size
         self.split = split
-
+        self.data_format = data_format
         self.seed = seed
         self.sampling_rate = sampling_rate
         self.fft_size = fft_size
@@ -127,6 +127,7 @@ class Spectrogram_Loader(object):
         record_bytes = h*w*c
 
         filename_queue = tf.train.string_input_producer(list(paths), shuffle=False, seed=self.seed)
+        # reader = tf.TextLineReader()
         reader = tf.FixedLengthRecordReader(record_bytes = record_bytes)
         # reader = tf.WholeFileReader()
         # reader = tf.TFRecordReader()
@@ -134,10 +135,11 @@ class Spectrogram_Loader(object):
         print(filename)
         print(data)
         spectrogram = tf.decode_raw(data, tf.float32)
-        spectrogram.set_shape(shape)
-
+        # spectrogram = tf.decode_csv(data)
+        spectrogram = tf.reshape(spectrogram, shape)
+        # spectrogram.set_shape(shape)
         min_after_dequeue = 5000
-        capacity = min_after_dequeue + self.batch_size
+        capacity = min_after_dequeue + 3*self.batch_size
 
         queue = tf.train.shuffle_batch(
             [spectrogram], batch_size=self.batch_size,
