@@ -22,7 +22,7 @@ for (dirpath, dirnames, filenames) in walk(domain_B_path):
     domain_B_file_list.extend(filenames)
     break
     
-print "domain_A_file_list : ", domain_A_file_list, "\n", "domain_B_file_list : ", domain_B_file_list
+print("domain_A_file_list : ", domain_A_file_list, "\n", "domain_B_file_list : ", domain_B_file_list)
 
 
 
@@ -59,10 +59,10 @@ for audio in domain_B_file_list :
 
     Spectrogram_B_save.append(D)
     
-print "Spectrogram A Shape : ", np.shape(Spectrogram_A_save[0])
-print "Spectrogram B Shape : ", np.shape(Spectrogram_B_save[0])
-print "Number of Spectrograms in Domain_A : ", len(Spectrogram_A_save)
-print "Number of Spectrograms in Domain_B : ", len(Spectrogram_B_save)
+print("Spectrogram A Shape : ", np.shape(Spectrogram_A_save[0]))
+print("Spectrogram B Shape : ", np.shape(Spectrogram_B_save[0]))
+print("Number of Spectrograms in Domain_A : ", len(Spectrogram_A_save))
+print("Number of Spectrograms in Domain_B : ", len(Spectrogram_B_save))
 
 Spectrogram_A_save = np.array(Spectrogram_A_save) #(Numberofspectrograms,col,row)
 Spectrogram_B_save = np.array(Spectrogram_B_save)

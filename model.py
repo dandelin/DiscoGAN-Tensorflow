@@ -11,7 +11,7 @@ from util import ReconstructionLoss, GANLoss
 class DiscoGAN(object):
     def __init__(
         self, sess, gen_conv_infos, gen_deconv_infos, disc_conv_infos,
-        a_dim=[64, 64], b_dim=[64, 64], channel=3, batch_size=64
+        a_dim=[64, 64], b_dim=[64, 64], channel=3, batch_size=64, config=None
     ):
         """
         Arguments :
@@ -35,6 +35,7 @@ class DiscoGAN(object):
         self.gen_conv_infos = gen_conv_infos
         self.gen_deconv_infos = gen_deconv_infos
         self.disc_conv_infos = disc_conv_infos
+        self.config = config
 
     def build_generator(self, signature):
         g = Generator(conv_infos=self.gen_conv_infos, deconv_infos=self.gen_deconv_infos, signature=signature)
@@ -160,7 +161,8 @@ class DiscoGAN(object):
 
         summary = tf.summary.merge_all() #merege summaries
 
-        writer = tf.summary.FileWriter('./logs2', self.sess.graph) # add the graph to the file './logs'
+        os.makedirs(self.config.log_dir, exist_ok=True)
+        writer = tf.summary.FileWriter('./{}'.format(self.config.log_dir), self.sess.graph) # add the graph to the file './logs'
 
         with tf.variable_scope('is_training', reuse=True):
             is_training = tf.get_variable('is_training', dtype=tf.bool)
@@ -179,10 +181,14 @@ class DiscoGAN(object):
             
             if step % 50 == 0:
                 writer.add_summary(summary_run, step)
-                save_image(self.sess.run(self.x_A), 'results2/A{}.png'.format(step))
-                save_image(self.sess.run(self.x_AB), 'results2/AB{}.png'.format(step))
+                os.makedirs(self.config.snapshot_dir, exist_ok=True)
+                for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
+                    arg = getattr(self, 'x_{}'.format(t))
+                    images = self.sess.run(arg)
+                    save_image(images, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
                 
             if step % 500 == 0:
-                saver.save(self.sess, "checkpoint2/model.ckpt", global_step = step)
+                os.makedirs(self.config.checkpoint_dir, exist_ok=True)
+                saver.save(self.sess, "{}/model.ckpt".format(self.config.checkpoint_dir), global_step = step)
         coord.request_stop()
         coord.join(threads)

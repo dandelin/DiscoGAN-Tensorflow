@@ -42,4 +42,4 @@ class Generator(object):
                 
                 setattr(self, "deconv_{}".format(i), prev)
 
-            return tf.sigmoid(prev)
+            return tf.tanh(prev)

@@ -3,6 +3,14 @@ from loader import Spectrogram_Loader, Loader, save_image
 import tensorflow as tf
 
 batch_size = 128
+test_root = 'edges2handbags'
+
+class Config(object):
+    pass
+config = Config()
+config.log_dir = test_root + '/logs'
+config.checkpoint_dir = test_root + '/checkpoint'
+config.snapshot_dir = test_root + '/shapshots'
 
 gen_conv_infos = {
     "conv_layer_number": 4,
@@ -64,7 +72,7 @@ if __name__ == "__main__":
 
     with tf.Session() as sess:
 
-        discoGAN = DiscoGAN(sess, gen_conv_infos, gen_deconv_infos, disc_conv_infos, batch_size=batch_size)
+        discoGAN = DiscoGAN(sess, gen_conv_infos, gen_deconv_infos, disc_conv_infos, batch_size=batch_size, config=config)
 
         discoGAN.build_model()
         discoGAN.train()
