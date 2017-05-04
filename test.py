@@ -50,8 +50,9 @@ with tf.Session() as sess:
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess, coord=coord)
 
-    image = loader.get_image_from_loader(sess)
+    spectrogram = loader.get_image_from_loader(sess)
     
+
     save_image(image, '{}/image.png'.format("test"))
     
     coord.request_stop()

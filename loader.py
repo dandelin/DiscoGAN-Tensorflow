@@ -124,7 +124,7 @@ class Spectrogram_Loader(object):
         shape = [h,w,c]
         
         
-        record_bytes = h*w*c
+        record_bytes = h*w*c*4
 
         filename_queue = tf.train.string_input_producer(list(paths), shuffle=False, seed=self.seed)
         # reader = tf.TextLineReader()
@@ -136,7 +136,10 @@ class Spectrogram_Loader(object):
         print(data)
         spectrogram = tf.decode_raw(data, tf.float32)
         # spectrogram = tf.decode_csv(data)
+        print(spectrogram)
         spectrogram = tf.reshape(spectrogram, shape)
+        tf.InteractiveSession()
+        print(spectrogram.eval())
         # spectrogram.set_shape(shape)
         min_after_dequeue = 5000
         capacity = min_after_dequeue + 3*self.batch_size
@@ -176,10 +179,14 @@ class Spectrogram_Loader(object):
         # FFT_SIZE = 1024 #Frequency resolution
 
         for (dirpath, dirnames, filenames) in walk(domain_A_path):
+            if 'DS_Store' in filenames:
+                filenames.remove('DS_Store')
             domain_A_file_list.extend(filenames)
             break
 
         for (dirpath, dirnames, filenames) in walk(domain_B_path):
+            if 'DS_Store' in filenames:
+                filenames.remove('DS_Store')            
             domain_B_file_list.extend(filenames)
             break
             
@@ -197,8 +204,10 @@ class Spectrogram_Loader(object):
             y, sr = librosa.core.load("/Users/Adrian/Desktop/Domain_A/" + audio, sr = self.sampling_rate, mono=True, offset=self.offset, duration=self.duration)
             D = librosa.core.stft(y=y, n_fft=self.fft_size, hop_length=int(self.fft_size/2), win_length=None, window='hann', center=True) # win_length = FFT_SIZE
             D = np.abs(D) # Magnitude of plain spectrogram
+            D = np.reshape(D, (1,-1))
             # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
             
+
             Spectrogram_A_save.append(D)
             
 
@@ -209,6 +218,7 @@ class Spectrogram_Loader(object):
             y, sr = librosa.core.load("/Users/Adrian/Desktop/Domain_B/" + audio, sr = self.sampling_rate, mono=True, offset=self.offset, duration=self.duration)         
             D = librosa.core.stft(y = y, n_fft=self.fft_size, hop_length=int(self.fft_size/2), win_length=None, window='hann', center=True)
             D = np.abs(D) # Magnitude of plain spectrogram
+            D = np.reshape(D, (1,-1))
             # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None)#mel-spectrogram
 
             Spectrogram_B_save.append(D)
@@ -217,6 +227,8 @@ class Spectrogram_Loader(object):
         print("Spectrogram B Shape : ", np.shape(Spectrogram_B_save[0]))
         print("Number of Spectrograms in Domain_A : ", len(Spectrogram_A_save))
         print("Number of Spectrograms in Domain_B : ", len(Spectrogram_B_save))
+
+
 
         Spectrogram_A_save = np.array(Spectrogram_A_save) #(Numberofspectrograms,col,row)
         Spectrogram_B_save = np.array(Spectrogram_B_save)
@@ -237,8 +249,8 @@ class Spectrogram_Loader(object):
                 B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))   
 
 
-        plt.figure(figsize=(10, 4))
+        # plt.figure(figsize=(10, 4))
         #librosa.display.specshow(librosa.power_to_db(S, ref=np.max), y_axis='mel', fmax=None, x_axis='time')
-        plt.title('Spectrogram')
-        plt.imshow(np.log10(Spectrogram_A_save[0]+0.1), aspect = 'auto')
-        plt.show()     
+        # plt.title('Spectrogram')
+        # plt.imshow(np.log10(Spectrogram_A_save[0]+0.1), aspect = 'auto')
+        # plt.show()     
