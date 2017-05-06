@@ -89,8 +89,6 @@ except IOError :
 
 
 
-
-
 # try:
 #     for i, A in enumerate(Spectrogram_A_save):
 #         convert_to(A, "./spectrogram_files_A/spectrograms_A_{}.tfrecords".format(i))

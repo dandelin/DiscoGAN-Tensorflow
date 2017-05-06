@@ -3,10 +3,11 @@ import math
 import random
 import tensorflow as tf
 
-from loader import Loader, save_image
+from loader import Loader, save_image, save_reconstructed_audio
 from generator import Generator
 from discriminator import Discriminator
 from util import ReconstructionLoss, GANLoss
+
 
 class DiscoGAN(object):
     def __init__(
@@ -185,8 +186,10 @@ class DiscoGAN(object):
                 for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
                     arg = getattr(self, 'x_{}'.format(t))
                     images = self.sess.run(arg)
+                    # spectrograms = self.sess.run(arg)
                     save_image(images, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
-                
+                    # save_reconstructed_audio(spectrograms, '{}/{}{}.mp3'.format(self.config.snapshot_dir, t, step))
+
             if step % 500 == 0:
                 os.makedirs(self.config.checkpoint_dir, exist_ok=True)
                 saver.save(self.sess, "{}/model.ckpt".format(self.config.checkpoint_dir), global_step = step)
