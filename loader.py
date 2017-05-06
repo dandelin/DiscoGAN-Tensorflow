@@ -1,9 +1,13 @@
 import math, os
 from PIL import Image
 from glob import glob
+from tfrecordreadwrite import convert_to, read_and_decode
+from os import walk, mkdir
+
 import tensorflow as tf
 import numpy as np
 import librosa
+
 
 class Loader(object):
     def __init__(self, root, batch_size, scale_size, data_format, \
@@ -115,32 +119,24 @@ class Spectrogram_Loader(object):
     def build_loader(self):
 
         dataset_name = os.path.basename(self.root)
-        paths = glob("{}/".format(self.root))
+        paths = glob("{}/*.tfrecords".format(self.root))
 
         h = (self.fft_size/2)+1
         w = int(math.ceil(float(self.sampling_rate*self.duration)/(int(self.fft_size/2))))
         c = 1
         
-        shape = [h,w,c]
-        
-        
-        record_bytes = h*w*c*4
+        shape = [h,w,1]
+
+
+        print(list(paths))
 
         filename_queue = tf.train.string_input_producer(list(paths), shuffle=False, seed=self.seed)
-        # reader = tf.TextLineReader()
-        reader = tf.FixedLengthRecordReader(record_bytes = record_bytes)
-        # reader = tf.WholeFileReader()
-        # reader = tf.TFRecordReader()
-        filename, data = reader.read(filename_queue)
-        print(filename)
-        print(data)
-        spectrogram = tf.decode_raw(data, tf.float32)
-        # spectrogram = tf.decode_csv(data)
-        print(spectrogram)
-        spectrogram = tf.reshape(spectrogram, shape)
-        tf.InteractiveSession()
-        print(spectrogram.eval())
-        # spectrogram.set_shape(shape)
+        spectrogram = read_and_decode(filename_queue)
+        spectrogram = tf.reshape(spectrogram, shape)       
+        spectrogram.set_shape(shape)
+
+
+        
         min_after_dequeue = 5000
         capacity = min_after_dequeue + 3*self.batch_size
 
@@ -149,7 +145,7 @@ class Spectrogram_Loader(object):
             num_threads=4, capacity=capacity,
             min_after_dequeue=min_after_dequeue, name='synthetic_inputs') 
 
-        queue = tf.image.resize_area(queue, [self.scale_size[0], self.scale_size[1]])
+        # queue = tf.image.resize_area(queue, [self.scale_size[0], self.scale_size[1]])
 
         if self.data_format == 'NCHW':
             queue = tf.transpose(queue, [0, 3, 1, 2])
@@ -160,97 +156,8 @@ class Spectrogram_Loader(object):
 
         self.queue = tf.to_float(queue)
 
-    def get_image_from_loader(self, sess):
+    def get_spectrogram_from_loader(self, sess):
         x = self.queue.eval(session=sess)
         if self.data_format == 'NCHW':
             x = x.transpose([0, 2, 3, 1])
-        return x
-    
-    def make_spectrogram():
-
-        #FIX ME : write your data directory
-        domain_A_path = "/Users/Adrian/Desktop/Domain_A"
-        domain_B_path = "/Users/Adrian/Desktop/Domain_B"
-        domain_A_file_list = []
-        domain_B_file_list = []
-
-
-        # SAMPLING_RATE = 16000
-        # FFT_SIZE = 1024 #Frequency resolution
-
-        for (dirpath, dirnames, filenames) in walk(domain_A_path):
-            if 'DS_Store' in filenames:
-                filenames.remove('DS_Store')
-            domain_A_file_list.extend(filenames)
-            break
-
-        for (dirpath, dirnames, filenames) in walk(domain_B_path):
-            if 'DS_Store' in filenames:
-                filenames.remove('DS_Store')            
-            domain_B_file_list.extend(filenames)
-            break
-            
-        print("domain_A_file_list : ", domain_A_file_list, "\n", "domain_B_file_list : ", domain_B_file_list)
-
-
-
-        Spectrogram_A_save = []
-        Spectrogram_B_save = []
-
-        #domain_A_file fetch from directory
-        for audio in domain_A_file_list :
-
-            #loading from offset(5s) to duration(8s)
-            y, sr = librosa.core.load("/Users/Adrian/Desktop/Domain_A/" + audio, sr = self.sampling_rate, mono=True, offset=self.offset, duration=self.duration)
-            D = librosa.core.stft(y=y, n_fft=self.fft_size, hop_length=int(self.fft_size/2), win_length=None, window='hann', center=True) # win_length = FFT_SIZE
-            D = np.abs(D) # Magnitude of plain spectrogram
-            D = np.reshape(D, (1,-1))
-            # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
-            
-
-            Spectrogram_A_save.append(D)
-            
-
-        #domain_B_file fetch from directory
-        for audio in domain_B_file_list :
-
-            #loading from offset(5s) to duration(8s)
-            y, sr = librosa.core.load("/Users/Adrian/Desktop/Domain_B/" + audio, sr = self.sampling_rate, mono=True, offset=self.offset, duration=self.duration)         
-            D = librosa.core.stft(y = y, n_fft=self.fft_size, hop_length=int(self.fft_size/2), win_length=None, window='hann', center=True)
-            D = np.abs(D) # Magnitude of plain spectrogram
-            D = np.reshape(D, (1,-1))
-            # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None)#mel-spectrogram
-
-            Spectrogram_B_save.append(D)
-            
-        print("Spectrogram A Shape : ", np.shape(Spectrogram_A_save[0]))
-        print("Spectrogram B Shape : ", np.shape(Spectrogram_B_save[0]))
-        print("Number of Spectrograms in Domain_A : ", len(Spectrogram_A_save))
-        print("Number of Spectrograms in Domain_B : ", len(Spectrogram_B_save))
-
-
-
-        Spectrogram_A_save = np.array(Spectrogram_A_save) #(Numberofspectrograms,col,row)
-        Spectrogram_B_save = np.array(Spectrogram_B_save)
-        print(Spectrogram_A_save.shape)
-        print(Spectrogram_B_save.shape)
-
-        try:
-            for i, A in enumerate(Spectrogram_A_save):
-                A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
-            for i, B in enumerate(Spectrogram_B_save):
-                B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))
-        except IOError :
-            mkdir("./spectrogram_files_A")
-            mkdir("./spectrogram_files_B")
-            for i, A in enumerate(Spectrogram_A_save):
-                A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
-            for i, B in enumerate(Spectrogram_B_save):
-                B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))   
-
-
-        # plt.figure(figsize=(10, 4))
-        #librosa.display.specshow(librosa.power_to_db(S, ref=np.max), y_axis='mel', fmax=None, x_axis='time')
-        # plt.title('Spectrogram')
-        # plt.imshow(np.log10(Spectrogram_A_save[0]+0.1), aspect = 'auto')
-        # plt.show()     
+        return x    

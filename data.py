@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import tensorflow as tf
-
+from tfrecordreadwrite import convert_to, read_and_decode
 from os import walk, mkdir
 
 
@@ -44,9 +44,11 @@ for audio in domain_A_file_list :
     D = librosa.core.stft(y=y, n_fft=FFT_SIZE, hop_length=int(FFT_SIZE/2), win_length=None, window='hann', center=True) # win_length = FFT_SIZE
     D = np.abs(D) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
-    D = np.reshape(D,(1,-1))
+    D = np.expand_dims(D, axis=2)
+    # D = np.reshape(D,(1,-1,1)) #The last index indicates channel
     
-    Spectrogram_A_save.extend(D)
+    Spectrogram_A_save.append(D)
+    # Spectrogram_A_save.extend(D)
     
 
 #domain_B_file fetch from directory
@@ -56,9 +58,12 @@ for audio in domain_B_file_list :
     D = librosa.core.stft(y =y, n_fft=FFT_SIZE, hop_length=int(FFT_SIZE/2), win_length=None, window='hann', center=True)
     D = np.abs(D) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=scope_y, n_fft=2048, hop_length=1024, sr=sr, n_mels=128, fmax=None)#mel-spectrogram
-    D = np.reshape(D,(1,-1))
+    D = np.expand_dims(D, axis=2)
+    # D = np.reshape(D,(1,-1,1))
     
-    Spectrogram_B_save.extend(D)
+    
+    Spectrogram_B_save.append(D)
+    # Spectrogram_A_save.extend(D)
     
 
 
@@ -70,26 +75,36 @@ Spectrogram_B_save = np.array(Spectrogram_B_save, dtype = np.float32)
 print("SHAPE_A : " , Spectrogram_A_save.shape) #(Numberofspecs,col,row)
 print("SHAPE_B : " , Spectrogram_B_save.shape)
 
+
+
+
 try:
-    Spectrogram_A_save.tofile("./spectrogram_files_A/spectrograms_A.bin")
-    Spectrogram_B_save.tofile("./spectrogram_files_B/spectrograms_B.bin")
+    convert_to(Spectrogram_A_save, "./spectrogram_files_A/spectrograms_A.tfrecords")
+    convert_to(Spectrogram_A_save, "./spectrogram_files_B/spectrograms_B.tfrecords")
 except IOError :
     mkdir("./spectrogram_files_A")
     mkdir("./spectrogram_files_B")
-    Spectrogram_A_save.tofile("./spectrogram_files_A/spectrograms_A.bin")
-    Spectrogram_B_save.tofile("./spectrogram_files_B/spectrograms_B.bin")
+    convert_to(Spectrogram_A_save, "./spectrogram_files_A/spectrograms_A.tfrecords")
+    convert_to(Spectrogram_A_save, "./spectrogram_files_B/spectrograms_B.tfrecords")
+
+
+
+
+
 # try:
 #     for i, A in enumerate(Spectrogram_A_save):
-#         A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
+#         convert_to(A, "./spectrogram_files_A/spectrograms_A_{}.tfrecords".format(i))
 #     for i, B in enumerate(Spectrogram_B_save):      
-#         B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))
+#         convert_to(B, "./spectrogram_files_B/spectrograms_B_{}.tfrecords".format(i))
 # except IOError :
 #     mkdir("./spectrogram_files_A")
 #     mkdir("./spectrogram_files_B")
 #     for i, A in enumerate(Spectrogram_A_save):
-#         A.tofile("./spectrogram_files_A/spectrograms_A_{}.bin".format(i))
+#         convert_to(A, "./spectrogram_files_A/spectrograms_A_{}.tfrecords".format(i))
 #     for i, B in enumerate(Spectrogram_B_save):
-#         B.tofile("./spectrogram_files_B/spectrograms_B_{}.bin".format(i))   
+#         convert_to(B, "./spectrogram_files_B/spectrograms_B_{}.tfrecords".format(i))
+
+
 
 
 # plt.figure(figsize=(10, 4))

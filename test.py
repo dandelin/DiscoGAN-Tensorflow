@@ -31,7 +31,7 @@ import numpy as np
 
 
 root = "./spectrogram_files_A"
-batch_size = 8
+batch_size = 3
 scale_size = [64,64]
 data_format = "NHWC"
 fft_size = 1024
@@ -44,16 +44,17 @@ loader = Spectrogram_Loader(root, batch_size, scale_size, data_format, \
 
 init_op = tf.global_variables_initializer()
 
+
+
+
 with tf.Session() as sess:
 
     sess.run([init_op])
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess, coord=coord)
-
-    spectrogram = loader.get_image_from_loader(sess)
     
-
-    save_image(image, '{}/image.png'.format("test"))
+    spectrogram = loader.get_spectrogram_from_loader(sess)
+    print(spectrogram.shape)
     
     coord.request_stop()
     coord.join(threads)
