@@ -161,3 +161,18 @@ class Spectrogram_Loader(object):
         if self.data_format == 'NCHW':
             x = x.transpose([0, 2, 3, 1])
         return x    
+
+    
+    
+#Griffin lim algorithm
+def save_reconstructed_audio(spectrogram, filename):
+
+    p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
+    for i in range(500):
+        print(i)
+        S = spectrogram * np.exp(1j*p)
+        x = librosa.istft(S, hop_length = int(FFT_SIZE/8), win_length = FFT_SIZE)
+        p = np.angle(librosa.stft(x, n_fft = FFT_SIZE, hop_length = int(FFT_SIZE/8)))
+    OUTPUT_FILENAME = './generated_audio/{}'.format(filename)
+    librosa.output.write_wav(OUTPUT_FILENAME, x, SAMPLING_RATE)  
+    
