@@ -65,27 +65,35 @@ for audio in audio_male_path:
     #loading from offset(1s) to (4s)
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset=1, duration=3)
     
-    if len(y)<=3*SAMPLING_RATE:
-        pass
+    if len(y)<3*SAMPLING_RATE:
+        print(len(y))
+        continue
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
+    print("a1")
     D = np.abs(D) # Magnitude of plain spectrogram
+    print("a2")
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
     D = np.expand_dims(D, axis=2)
+    print("a3")
     spectrogram_male_save.append(D)
+    print("a4")
 
+print("Save male spec array")
 spectrogram_male_save = np.asarray(spectrogram_male_save, dtype=np.float32)
-print("Male_spec_shape", spectrogram_male_save.shape)
+print("Male spec shape", spectrogram_male_save.shape)
 
 
 #convert numpy array(male_spectrogram) to tf_recordfile
+print("Male spec converting start")
+
 try:
     mkdir("./spectrograms_male")
     convert_to(spectrogram_male_save, "./spectrograms_male/spectrograms_male_speech.tfrecords")
 except OSError :
     convert_to(spectrogram_male_save, "./spectrograms_male/spectrograms_male_speech.tfrecords")
     
-
+print("Male spec converting finished")
 
 
 i = 0
@@ -96,30 +104,38 @@ for audio in audio_female_path:
     print(i)
     #loading from offset(1s) to (4s)
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset=1, duration=3)
+    
+    if len(y)<3*SAMPLING_RATE:
+        print(len(y))
+        continue
+
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
     D = np.abs(D) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
     D = np.expand_dims(D, axis=2)
     spectrogram_female_save.append(D)
 
+print("Save female spec array")
 spectrogram_female_save = np.asarray(spectrogram_female_save, dtype=np.float32)
-print("Female_spec_shape", spectrogram_female_save.shape) #(Numberofspecs,col,row)
+print("Female spec shape", spectrogram_female_save.shape) #(Numberofspecs,col,row)
 
 
 #convert numpy array(female_spectrogram) to tf_recordfile
+print("Female spec converting start")
+
 try:
     mkdir("./spectrograms_female")
     convert_to(spectrogram_female_save, "./spectrograms_female/spectrograms_female_speech.tfrecords")
 except OSError :
     convert_to(spectrogram_female_save, "./spectrograms_female/spectrograms_female_speech.tfrecords")
      
+print("Female spec converting finished")
+
+# D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
+# display.specshow(librosa.power_to_db(D, ref=np.max), y_axis='log', fmax=None, x_axis='time')
 
 
 D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-display.specshow(librosa.power_to_db(D, ref=np.max), y_axis='log', fmax=None, x_axis='time')
-
-
-#D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-# plt.title('Spectrogram')
-# plt.imshow(np.log10(D+0.1), aspect = 'auto')
-# plt.show()
+plt.title('Spectrogram')
+plt.imshow(np.log10(D+0.1), aspect = 'auto')
+plt.show()

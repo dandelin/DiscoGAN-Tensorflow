@@ -102,7 +102,7 @@ def make_grid(tensor, nrow=8, padding=2,
 class Spectrogram_Loader(object):
     def __init__(self, root, batch_size, scale_size, data_format, \
         split=None, seed=None, \
-        sampling_rate = 16000, fft_size = 1024, offset = 2, duration = 3):
+        sampling_rate = 16000, fft_size = 1024, hop_length = int(1024/8), offset = 1, duration = 3):
 
         self.root = root
         self.batch_size = batch_size
@@ -112,26 +112,32 @@ class Spectrogram_Loader(object):
         self.seed = seed
         self.sampling_rate = sampling_rate
         self.fft_size = fft_size
+        self.hop_length = hop_length
         self.offset = offset
         self.duration = duration # how long amount of audio slice do I want
         self.build_loader()
-    
+        
+
     def build_loader(self):
 
         dataset_name = os.path.basename(self.root)
         paths = glob("{}/*.tfrecords".format(self.root))
 
-        h = (self.fft_size/2)+1
-        w = int(math.ceil(float(self.sampling_rate*self.duration)/(int(self.fft_size/2))))
+        y, sr = librosa.core.load("./Male/p226/p226_001.wav", sr = self.sampling_rate, mono=True, offset=1, duration=3)
+        D = librosa.stft(y=y, n_fft=self.fft_size, hop_length=self.hop_length, center=True)
+        D = np.abs(D)
+        h = D.shape[0]
+        w = D.shape[1]
         c = 1
+
+        # h = int(self.fft_size/2)+1
+        # w = int(float(self.sampling_rate*self.duration)/(self.hop_length))+1
+        # c = 1
         
-        shape = [h,w,1]
-
-
-        print(list(paths))
-
-        filename_queue = tf.train.string_input_producer(list(paths), shuffle=False, seed=self.seed)
-        spectrogram = read_and_decode(filename_queue)
+        shape = [h,w,c]
+        print(list(paths))   
+        filename_queue = tf.train.string_input_producer(list(paths), shuffle=False, seed=self.seed) 
+        spectrogram = read_and_decode(filename_queue)    
         spectrogram = tf.reshape(spectrogram, shape)       
         spectrogram.set_shape(shape)
 
@@ -163,16 +169,16 @@ class Spectrogram_Loader(object):
         return x    
 
     
+    #Griffin lim algorithm
+    def save_reconstructed_audio(self, spectrogram, filename):
+        p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
+        for i in range(100):
+            S = spectrogram * np.exp(1j*p)
+            x = librosa.istft(S, hop_length = self.hop_length, win_length = self.fft_size)
+            p = np.angle(librosa.stft(x, n_fft = self.fft_size, hop_length = self.hop_length))
     
-#Griffin lim algorithm
-def save_reconstructed_audio(spectrogram, filename):
-
-    p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
-    for i in range(500):
-        print(i)
-        S = spectrogram * np.exp(1j*p)
-        x = librosa.istft(S, hop_length = int(FFT_SIZE/8), win_length = FFT_SIZE)
-        p = np.angle(librosa.stft(x, n_fft = FFT_SIZE, hop_length = int(FFT_SIZE/8)))
-    OUTPUT_FILENAME = './generated_audio/{}'.format(filename)
-    librosa.output.write_wav(OUTPUT_FILENAME, x, SAMPLING_RATE)  
-    
+        os.makedirs("./generated_audio", exist_ok=True)
+        OUTPUT_FILENAME = "./generated_audio/{}".format(filename)
+            
+        librosa.output.write_wav(OUTPUT_FILENAME, x, self.sampling_rate)  
+        
