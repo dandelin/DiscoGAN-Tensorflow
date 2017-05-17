@@ -123,7 +123,7 @@ class Spectrogram_Loader(object):
         dataset_name = os.path.basename(self.root)
         paths = glob("{}/*.tfrecords".format(self.root))
 
-        y, sr = librosa.core.load("./Male/p226/p226_001.wav", sr = self.sampling_rate, mono=True, offset=1, duration=3)
+        y, sr = librosa.core.load("./Test_Male/p226/p226_001.wav", sr = self.sampling_rate, mono=True, offset=1, duration=3)
         D = librosa.stft(y=y, n_fft=self.fft_size, hop_length=self.hop_length, center=True)
         D = np.abs(D)
         h = D.shape[0]

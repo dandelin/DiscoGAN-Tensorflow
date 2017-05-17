@@ -15,7 +15,7 @@ hop_length = int(FFT_SIZE/8)
 
 
 #FIX ME : write your data directory
-male_dir_path = "./Male"
+male_dir_path = "./Test_Male"
 
 temp = []
 audio_male_path = []
@@ -32,7 +32,7 @@ for path in temp:
 
 
 #FIX ME : write your data directory
-female_dir_path = "./Female"
+female_dir_path = "./Test_Female"
 
 temp = []
 audio_female_path = []
@@ -70,14 +70,10 @@ for audio in audio_male_path:
         continue
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-    print("a1")
     D = np.abs(D) # Magnitude of plain spectrogram
-    print("a2")
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
     D = np.expand_dims(D, axis=2)
-    print("a3")
     spectrogram_male_save.append(D)
-    print("a4")
 
 print("Save male spec array")
 spectrogram_male_save = np.asarray(spectrogram_male_save, dtype=np.float32)
@@ -89,9 +85,9 @@ print("Male spec converting start")
 
 try:
     mkdir("./spectrograms_male")
-    convert_to(spectrogram_male_save, "./spectrograms_male/spectrograms_male_speech.tfrecords")
+    convert_to(spectrogram_male_save, "./Test_spectrograms_male/spectrograms_male_speech.tfrecords")
 except OSError :
-    convert_to(spectrogram_male_save, "./spectrograms_male/spectrograms_male_speech.tfrecords")
+    convert_to(spectrogram_male_save, "./Test_spectrograms_male/spectrograms_male_speech.tfrecords")
     
 print("Male spec converting finished")
 
@@ -125,9 +121,9 @@ print("Female spec converting start")
 
 try:
     mkdir("./spectrograms_female")
-    convert_to(spectrogram_female_save, "./spectrograms_female/spectrograms_female_speech.tfrecords")
+    convert_to(spectrogram_female_save, "./Test_spectrograms_female/spectrograms_female_speech.tfrecords")
 except OSError :
-    convert_to(spectrogram_female_save, "./spectrograms_female/spectrograms_female_speech.tfrecords")
+    convert_to(spectrogram_female_save, "./Test_spectrograms_female/spectrograms_female_speech.tfrecords")
      
 print("Female spec converting finished")
 
@@ -135,7 +131,3 @@ print("Female spec converting finished")
 # display.specshow(librosa.power_to_db(D, ref=np.max), y_axis='log', fmax=None, x_axis='time')
 
 
-D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-plt.title('Spectrogram')
-plt.imshow(np.log10(D+0.1), aspect = 'auto')
-plt.show()

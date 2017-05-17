@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 #     coord.join(threads)
 
 
-root = "./spectrograms_male"
+root = "./Test_spectrograms_male"
 batch_size = 3
 scale_size = [64,64]
 data_format = "NHWC"
