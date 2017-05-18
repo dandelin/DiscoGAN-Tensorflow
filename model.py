@@ -186,7 +186,7 @@ class DiscoGAN(object):
 
             _, _, summary_run = self.sess.run([optimize_G, optimize_D, summary])
             
-            if step % 3 == 0:
+            if step % 100 == 0:
                 writer.add_summary(summary_run, step)
                 os.makedirs(self.config.snapshot_dir, exist_ok=True)
                 for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
@@ -195,7 +195,7 @@ class DiscoGAN(object):
                     save_image(images, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
                     
                     
-            if step % 5 == 0:
+            if step % 100 == 0:
                 writer.add_summary(summary_run, step)
                 os.makedirs(self.config.audio_dir, exist_ok=True)
                 for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
