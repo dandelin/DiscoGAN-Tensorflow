@@ -3,7 +3,7 @@ import math
 import random
 import tensorflow as tf
 
-from loader import Loader, save_image, save_reconstructed_audio
+from loader import Loader, save_image, Spectrogram_Loader
 from generator import Generator
 from discriminator import Discriminator
 from util import ReconstructionLoss, GANLoss
@@ -31,6 +31,9 @@ class DiscoGAN(object):
             'A': a_dim,
             'B': b_dim
         }
+
+        self.loader_a = Spectrogram_Loader('./Test_spectrograms_female', self.batch_size, self.image_dims['A'], "NHWC")
+        self.loader_b = Spectrogram_Loader('./Test_spectrograms_male', self.batch_size, self.image_dims['B'], "NHWC")
         
         self.channel = channel
         self.gen_conv_infos = gen_conv_infos
@@ -54,8 +57,11 @@ class DiscoGAN(object):
         with tf.variable_scope('is_training'):
             is_training = tf.get_variable('is_training', dtype=tf.bool, initializer=True)
 
-        self.x_A = Loader("./imageA", self.batch_size, self.image_dims['A'], "NHWC", file_type="jpg").queue
-        self.x_B = Loader("./imageB", self.batch_size, self.image_dims['B'], "NHWC", file_type="jpg").queue
+        # self.x_A = Loader("./imageA", self.batch_size, self.image_dims['A'], "NHWC", file_type="jpg").queue
+        # self.x_B = Loader("./imageB", self.batch_size, self.image_dims['B'], "NHWC", file_type="jpg").queue
+
+        self.x_A = self.loader_a.queue
+        self.x_B = self.loader_b.queue
 
         # Model Architecture
         self.build_generator(signature = 'AB') # Init G_AB
@@ -180,15 +186,15 @@ class DiscoGAN(object):
 
             _, _, summary_run = self.sess.run([optimize_G, optimize_D, summary])
             
-            if step % 50 == 0:
+            if step % 200 == 0:
                 writer.add_summary(summary_run, step)
                 os.makedirs(self.config.snapshot_dir, exist_ok=True)
                 for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
                     arg = getattr(self, 'x_{}'.format(t))
                     images = self.sess.run(arg)
-                    # spectrograms = self.sess.run(arg)
                     save_image(images, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
-                    # save_reconstructed_audio(spectrograms, '{}/{}{}.mp3'.format(self.config.snapshot_dir, t, step))
+                    #spectrograms = self.sess.run(arg)
+                    #self.loader_a.save_reconstructed_audio(spectrograms, '{}/{}{}.mp3'.format(self.config.snapshot_dir, t, step))
 
             if step % 500 == 0:
                 os.makedirs(self.config.checkpoint_dir, exist_ok=True)

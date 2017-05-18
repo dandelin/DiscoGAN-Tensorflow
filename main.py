@@ -1,78 +1,20 @@
 from model import DiscoGAN
 from loader import Spectrogram_Loader, Loader, save_image
+from config import config, adict
 import tensorflow as tf
 
-batch_size = 128
-test_root = 'edges2handbags'
-
-class Config(object):
-    pass
-config = Config()
-config.log_dir = test_root + '/logs'
-config.checkpoint_dir = test_root + '/checkpoint'
-config.snapshot_dir = test_root + '/shapshots'
-
-gen_conv_infos = {
-    "conv_layer_number": 4,
-    "filter":[
-        [4,4,3,64],
-        [4,4,64,64*2],
-        [4,4,64*2,64*4],
-        [4,4,64*4,64*8],
-    ],
-    "stride" : [
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,2,2,1],
-    ],
-}
-
-gen_deconv_infos = {
-    "conv_layer_number": 4,
-    "filter":[
-        [4,4,64*4,64*8],
-        [4,4,64*2,64*4],
-        [4,4,64*1,64*2],
-        [4,4,3,64],
-    ],
-    "stride" : [
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,2,2,1],
-    ],
-    "output_dims" : [
-        [batch_size, 8, 8, 64*4],
-        [batch_size, 16, 16, 64*2],
-        [batch_size, 32, 32, 64*1],
-        [batch_size, 64, 64, 3]
-    ],
-}
-
-disc_conv_infos = {
-    "conv_layer_number": 5,
-    "filter":[
-        [4,4,3,64],
-        [4,4,64,64*2],
-        [4,4,64*2,64*4],
-        [4,4,64*4,64*8],
-        [4,4,64*8,1],
-    ],
-    "stride" : [
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,2,2,1],
-        [1,1,1,1],
-    ],
-}
+shape = adict()
+shape.width = 376
+shape.height = 513
+shape.channel = 1
+c = config('spectro', shape)
 
 if __name__ == "__main__":
 
     with tf.Session() as sess:
 
-        discoGAN = DiscoGAN(sess, gen_conv_infos, gen_deconv_infos, disc_conv_infos, batch_size=batch_size, config=config)
+        discoGAN = DiscoGAN(sess, c.gen_conv_infos, c.gen_deconv_infos, c.disc_conv_infos,
+            batch_size=c.batch_size, config=c, a_dim=[shape.height, shape.width], b_dim=[shape.height, shape.width], channel=shape.channel)
 
         discoGAN.build_model()
         discoGAN.train()
