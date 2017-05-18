@@ -186,15 +186,26 @@ class DiscoGAN(object):
 
             _, _, summary_run = self.sess.run([optimize_G, optimize_D, summary])
             
-            if step % 200 == 0:
+            if step % 3 == 0:
                 writer.add_summary(summary_run, step)
                 os.makedirs(self.config.snapshot_dir, exist_ok=True)
                 for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
                     arg = getattr(self, 'x_{}'.format(t))
                     images = self.sess.run(arg)
                     save_image(images, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
-                    #spectrograms = self.sess.run(arg)
-                    #self.loader_a.save_reconstructed_audio(spectrograms, '{}/{}{}.mp3'.format(self.config.snapshot_dir, t, step))
+                    
+                    
+            if step % 5 == 0:
+                writer.add_summary(summary_run, step)
+                os.makedirs(self.config.audio_dir, exist_ok=True)
+                for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
+                    arg = getattr(self, 'x_{}'.format(t))
+                    spectrograms = self.sess.run(arg)
+                    print("spectrogram first sample", '{}{}'.format(t,step), "shape : ", spectrograms[0,:,:,0].shape)
+                    spectrograms = self.sess.run(arg)            
+                    print("reconstruction session...")
+                    self.loader_a.save_reconstructed_audio(spectrograms[0,:,:,0], '{}/{}{}.wav'.format(self.config.audio_dir, t, step))
+                    
 
             if step % 500 == 0:
                 os.makedirs(self.config.checkpoint_dir, exist_ok=True)

@@ -1,3 +1,4 @@
+from __future__ import division
 from math import ceil
 
 class adict(dict):
@@ -18,6 +19,7 @@ def config(name, shape):
     conf.log_dir = name + '/logs'
     conf.checkpoint_dir = name + '/checkpoint'
     conf.snapshot_dir = name + '/shapshots'
+    conf.audio_dir = name + '/audios'
     layer_depth = 2
 
     conf.gen_conv_infos = {

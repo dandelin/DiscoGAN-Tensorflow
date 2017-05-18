@@ -177,8 +177,6 @@ class Spectrogram_Loader(object):
             x = librosa.istft(S, hop_length = self.hop_length, win_length = self.fft_size)
             p = np.angle(librosa.stft(x, n_fft = self.fft_size, hop_length = self.hop_length))
     
-        os.makedirs("./generated_audio", exist_ok=True)
-        OUTPUT_FILENAME = "./generated_audio/{}".format(filename)
             
-        librosa.output.write_wav(OUTPUT_FILENAME, x, self.sampling_rate)  
+        librosa.output.write_wav(filename, x, self.sampling_rate)  
         
