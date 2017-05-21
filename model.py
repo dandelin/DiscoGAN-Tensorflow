@@ -32,8 +32,8 @@ class DiscoGAN(object):
             'B': b_dim
         }
 
-        self.loader_a = Spectrogram_Loader('./Test_spectrograms_female', self.batch_size, self.image_dims['A'], "NHWC")
-        self.loader_b = Spectrogram_Loader('./Test_spectrograms_male', self.batch_size, self.image_dims['B'], "NHWC")
+        self.loader_a = Spectrogram_Loader('./spectrograms_female', self.batch_size, self.image_dims['A'], "NHWC")
+        self.loader_b = Spectrogram_Loader('./spectrograms_male', self.batch_size, self.image_dims['B'], "NHWC")
         
         self.channel = channel
         self.gen_conv_infos = gen_conv_infos

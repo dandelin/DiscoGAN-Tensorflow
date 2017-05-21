@@ -13,7 +13,7 @@ from glob import glob
 
 SAMPLING_RATE = 16000
 FFT_SIZE = 1024 #Frequency resolution
-hop_length = int(FFT_SIZE/8)
+hop_length = int(FFT_SIZE/6)
 
 
 

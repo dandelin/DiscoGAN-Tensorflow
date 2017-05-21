@@ -38,11 +38,11 @@ scale_size = [64,64]
 data_format = "NHWC"
 fft_size = 1024
 sampling_rate = 16000
-offset = 2
-duration = 3
+offset = 0
+duration = 2.5
 
 loader = Spectrogram_Loader(root, batch_size, scale_size, data_format, \
-							offset = 2, fft_size = 1024, sampling_rate = 16000, duration = 3 )
+							offset = 0, fft_size = 1024, sampling_rate = 16000, duration = 2.5 )
 
 init_op = tf.global_variables_initializer()
 

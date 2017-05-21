@@ -102,7 +102,7 @@ def make_grid(tensor, nrow=8, padding=2,
 class Spectrogram_Loader(object):
     def __init__(self, root, batch_size, scale_size, data_format, \
         split=None, seed=None, \
-        sampling_rate = 16000, fft_size = 1024, hop_length = int(1024/8), offset = 1, duration = 3):
+        sampling_rate = 16000, fft_size = 1024, hop_length = int(1024/6), offset = 0, duration = 2.5):
 
         self.root = root
         self.batch_size = batch_size
@@ -171,6 +171,7 @@ class Spectrogram_Loader(object):
     
     #Griffin lim algorithm
     def save_reconstructed_audio(self, spectrogram, filename):
+        spectrogram = np.pow(spectrogram, 10) # If the input specrogram is scaled with logarithm, use this line.
         p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
         for i in range(100):
             S = spectrogram * np.exp(1j*p)
