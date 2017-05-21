@@ -4,7 +4,7 @@ from config import config, adict
 import tensorflow as tf
 
 shape = adict()
-shape.width = 376
+shape.width = 236
 shape.height = 513
 shape.channel = 1
 c = config('spectro', shape)

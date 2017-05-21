@@ -184,7 +184,7 @@ class DiscoGAN(object):
             if coord.should_stop():
                 break
 
-            _, _, summary_run = self.sess.run([optimize_G, optimize_D, summary])
+            _, _, summary_run = self.sess.run([optimize_D, optimize_G, summary])
             
             if step % 100 == 0:
                 writer.add_summary(summary_run, step)

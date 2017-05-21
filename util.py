@@ -49,11 +49,19 @@ def ReconstructionLoss(x, y, method='MSE'):
     elif method == 'L1':
         return tf.losses.absolute_difference(labels=x, predictions=y)
 
-def GANLoss(logits, is_real=True, smoothing=0.9):
+def GANLoss(logits, is_real=True, smoothing=1):
+
     if is_real:
-        labels = tf.fill(logits.get_shape(), smoothing)
+        labels_rand = tf.truncated_normal(logits.get_shape(), mean=0.0, stddev=0.2, dtype=tf.float32)
+        labels_pure = tf.ones_like(logits, dtype = tf.float32)
+
+        labels = tf.add(labels_rand, labels_pure)
+
     else:
-        labels = tf.zeros_like(logits)
+        labels_rand = tf.truncated_normal(logits.get_shape(), mean=0.0, stddev=0.2, dtype=tf.float32)
+        labels_pure = tf.zeros_like(logits, dtype = tf.float32)
+
+        labels = tf.add(labels_rand, labels_pure)
     
     return tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits))
 

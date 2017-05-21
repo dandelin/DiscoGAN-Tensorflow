@@ -123,7 +123,7 @@ class Spectrogram_Loader(object):
         dataset_name = os.path.basename(self.root)
         paths = glob("{}/*.tfrecords".format(self.root))
 
-        y, sr = librosa.core.load("./Test_Male/p226/p226_001.wav", sr = self.sampling_rate, mono=True, offset=1, duration=3)
+        y, sr = librosa.core.load("./Test_Male/p226/p226_001.wav", sr = self.sampling_rate, mono=True, offset=self.offset, duration=self.duration)
         D = librosa.stft(y=y, n_fft=self.fft_size, hop_length=self.hop_length, center=True)
         D = np.abs(D)
         h = D.shape[0]
@@ -171,7 +171,7 @@ class Spectrogram_Loader(object):
     
     #Griffin lim algorithm
     def save_reconstructed_audio(self, spectrogram, filename):
-        spectrogram = np.pow(spectrogram, 10) # If the input specrogram is scaled with logarithm, use this line.
+        spectrogram = np.power(spectrogram, 10) # If the input specrogram is scaled with logarithm, use this line.
         p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
         for i in range(100):
             S = spectrogram * np.exp(1j*p)

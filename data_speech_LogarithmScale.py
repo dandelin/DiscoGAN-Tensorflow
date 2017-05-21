@@ -12,8 +12,6 @@ from glob import glob
 SAMPLING_RATE = 16000
 FFT_SIZE = 1024 #Frequency resolution
 hop_length = int(FFT_SIZE/6)
-offset = 0
-duration = 2.5
 
 
 #FIX ME : write your data directory
@@ -62,7 +60,10 @@ for audio in audio_male_path:
     i += 1
     
     #loading from offset(1s) to (4s)
-    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset = offset, duration = duration)
+    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
+    if len(y) < duration*SAMPLING_RATE:
+        continue
+
     k = int(len(y)/1024)
     print("ylength_before",len(y))
     for j in range(k):
@@ -117,7 +118,10 @@ for audio in audio_female_path:
     i += 1
     
     #loading from offset(1s) to (4s)
-    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset = offset, duration = duration)
+    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
+    if len(y) < duration*SAMPLING_RATE:
+        continue
+
     k = int(len(y)/1024)
     
     for j in range(k):
