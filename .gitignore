@@ -1,5 +1,12 @@
+
+/bass
+/keyboard
+/spectrograms_bass
+/spectrograms_keyboard
 /spectrograms_male
 /spectrograms_female
+/log_spectrograms_female
+/log_spectrograms_male
 /Male
 /Female
 image*

@@ -15,7 +15,7 @@ hop_length = int(FFT_SIZE/8)
 
 
 #FIX ME : write your data directory
-male_dir_path = "./Test_Male"
+male_dir_path = "./Male"
 
 temp = []
 audio_male_path = []
@@ -32,7 +32,7 @@ for path in temp:
 
 
 #FIX ME : write your data directory
-female_dir_path = "./Test_Female"
+female_dir_path = "./Female"
 
 temp = []
 audio_female_path = []
@@ -48,30 +48,46 @@ for path in temp:
 
 
 
-
-
-
-
-
 spectrogram_male_save = []
 spectrogram_female_save = []
 
 i = 0
-
+threshold = -4000
+frame = 0
+duration = 2.5
 #speech_male_file fetch from directory
 for audio in audio_male_path:
     i += 1
-    print(i)
-    #loading from offset(1s) to (4s)
-    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset=1, duration=3)
     
-    if len(y)<3*SAMPLING_RATE:
-        print(len(y))
+    #loading from offset(1s) to (4s)
+    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
+    k = int(len(y)/1024)
+    print("ylength_before",len(y))
+    for j in range(k):
+        sum = np.sum(np.log10(np.power(y[frame:frame+1024],2)))
+        print(j)
+        print("sum",sum)
+        if sum > threshold :
+            onset = frame
+            print("onset", onset)
+            break
+        frame += 1024
+
+    frame = 0
+
+    try:
+        y = y[onset:onset+int(duration*SAMPLING_RATE)]
+        print("yvalue", y[int(duration*SAMPLING_RATE)-1])
+    except IndexError:
+        print("except")
         continue
 
+    print("ylength_after",len(y))
+    print("i",i)
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
     D = np.abs(D) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
+
     D = np.expand_dims(D, axis=2)
     spectrogram_male_save.append(D)
 
@@ -84,29 +100,48 @@ print("Male spec shape", spectrogram_male_save.shape)
 print("Male spec converting start")
 
 try:
-    mkdir("./spectrograms_male")
-    convert_to(spectrogram_male_save, "./Test_spectrograms_male/spectrograms_male_speech.tfrecords")
+    mkdir("./log_spectrograms_male")
+    convert_to(spectrogram_male_save, "./log_spectrograms_male/log_spectrograms_male_speech.tfrecords")
 except OSError :
-    convert_to(spectrogram_male_save, "./Test_spectrograms_male/spectrograms_male_speech.tfrecords")
+    convert_to(spectrogram_male_save, "./log_spectrograms_male/log_spectrograms_male_speech.tfrecords")
     
 print("Male spec converting finished")
 
 
 i = 0
-
+frame = 0
 #speech_female_file fetch from directory
 for audio in audio_female_path:
     i += 1
-    print(i)
-    #loading from offset(1s) to (4s)
-    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset=1, duration=3)
     
-    if len(y)<3*SAMPLING_RATE:
-        print(len(y))
+    #loading from offset(1s) to (4s)
+    y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
+    k = int(len(y)/1024)
+    
+    for j in range(k):
+        sum = np.sum(np.log10(np.power(y[frame:frame+1024],2)))
+        if sum > threshold :
+            onset = frame
+            print("onset",onset)
+            break
+        frame += 1024
+
+    frame = 0
+    
+    try:
+        y = y[onset:onset+int(duration*SAMPLING_RATE)]
+        print("yvalue", y[int(duration*SAMPLING_RATE)-1])
+    except IndexError:
+        print("except")
         continue
+
+    print(len(y))
+    print(i)
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
     D = np.abs(D) # Magnitude of plain spectrogram
+   
+   
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
     D = np.expand_dims(D, axis=2)
     spectrogram_female_save.append(D)
@@ -120,14 +155,15 @@ print("Female spec shape", spectrogram_female_save.shape) #(Numberofspecs,col,ro
 print("Female spec converting start")
 
 try:
-    mkdir("./spectrograms_female")
-    convert_to(spectrogram_female_save, "./Test_spectrograms_female/spectrograms_female_speech.tfrecords")
+    mkdir("./log_spectrograms_female")
+    convert_to(spectrogram_female_save, "./log_spectrograms_female/log_spectrograms_female_speech.tfrecords")
 except OSError :
-    convert_to(spectrogram_female_save, "./Test_spectrograms_female/spectrograms_female_speech.tfrecords")
+    convert_to(spectrogram_female_save, "./log_spectrograms_female/log_spectrograms_female_speech.tfrecords")
      
 print("Female spec converting finished")
 
 # D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
 # display.specshow(librosa.power_to_db(D, ref=np.max), y_axis='log', fmax=None, x_axis='time')
+
 
 
