@@ -1,4 +1,3 @@
-
 /bass
 /keyboard
 /spectrograms_bass
@@ -18,6 +17,7 @@ image*
 *.jpg
 *.png
 *.json
+*.wav
 *tfevents*
 *ckpt*
 checkpoint

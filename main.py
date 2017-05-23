@@ -7,7 +7,7 @@ shape = adict()
 shape.width = 255
 shape.height = 513
 shape.channel = 1
-c = config('spectro', shape)
+c = config('syn1', shape)
 
 if __name__ == "__main__":
 

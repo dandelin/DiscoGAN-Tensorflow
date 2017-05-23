@@ -123,16 +123,9 @@ class Spectrogram_Loader(object):
         dataset_name = os.path.basename(self.root)
         paths = glob("{}/*.tfrecords".format(self.root))
 
-        y, sr = librosa.core.load("./Test_Male/p226/p226_001.wav", sr = self.sampling_rate, mono=True, offset=self.offset, duration=self.duration)
-        D = librosa.stft(y=y, n_fft=self.fft_size, hop_length=self.hop_length, center=True)
-        D = np.abs(D)
-        h = D.shape[0]
-        w = D.shape[1]
+        h = 513
+        w = 255
         c = 1
-        print(h,w,c)
-        # h = int(self.fft_size/2)+1
-        # w = int(float(self.sampling_rate*self.duration)/(self.hop_length))+1
-        # c = 1
         
         shape = [h,w,c]
         print(list(paths))   
@@ -174,7 +167,6 @@ class Spectrogram_Loader(object):
         # spectrogram = np.power(10, spectrogram) # If the input specrogram is scaled with logarithm, use this line.
         p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
         for i in range(500):
-            print(i)
             S = spectrogram * np.exp(1j*p)
             x = librosa.istft(S, hop_length = self.hop_length, win_length = self.fft_size)
             p = np.angle(librosa.stft(x, n_fft = self.fft_size, hop_length = self.hop_length))
