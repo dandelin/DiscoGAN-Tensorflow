@@ -52,13 +52,13 @@ def ReconstructionLoss(x, y, method='MSE'):
 def GANLoss(logits, is_real=True, smoothing=1):
 
     if is_real:
-        labels_rand = tf.truncated_normal(logits.get_shape(), mean=0.0, stddev=0.2, dtype=tf.float32)
+        labels_rand = tf.truncated_normal(logits.get_shape(), mean=0.0, stddev=0.1, dtype=tf.float32)
         labels_pure = tf.ones_like(logits, dtype = tf.float32)
 
         labels = tf.add(labels_rand, labels_pure)
 
     else:
-        labels_rand = tf.truncated_normal(logits.get_shape(), mean=0.0, stddev=0.2, dtype=tf.float32)
+        labels_rand = tf.truncated_normal(logits.get_shape(), mean=0.0, stddev=0.1, dtype=tf.float32)
         labels_pure = tf.zeros_like(logits, dtype = tf.float32)
 
         labels = tf.add(labels_rand, labels_pure)

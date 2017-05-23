@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 #     coord.join(threads)
 
 
-root = "./Test_spectrograms_male"
+root = "./log_spectrograms_male"
 batch_size = 3
 scale_size = [64,64]
 data_format = "NHWC"
@@ -42,7 +42,7 @@ offset = 0
 duration = 2.5
 
 loader = Spectrogram_Loader(root, batch_size, scale_size, data_format, \
-							offset = 0, fft_size = 1024, sampling_rate = 16000, duration = 2.5 )
+							offset = offset, fft_size = fft_size, sampling_rate = sampling_rate, duration = duration )
 
 init_op = tf.global_variables_initializer()
 
@@ -58,8 +58,7 @@ with tf.Session() as sess:
     spectrogram = loader.get_spectrogram_from_loader(sess)
 
     print(spectrogram.shape)
-    print(spectrogram[0].shape)
-    spectrogram = np.squeeze(spectrogram[0], axis=(2,))
+    spectrogram = spectrogram[0,:,:,0]
     print(spectrogram.shape)
     print(spectrogram)
 

@@ -11,7 +11,7 @@ from glob import glob
 
 SAMPLING_RATE = 16000
 FFT_SIZE = 1024 #Frequency resolution
-hop_length = int(FFT_SIZE/6)
+hop_length = int(FFT_SIZE/6.5)
 
 
 #FIX ME : write your data directory
@@ -61,8 +61,14 @@ for audio in audio_male_path:
     
     
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
-    k = int(len(y)/1024)
+    
+    if len(y) < duration*SAMPLING_RATE:
+        continue
+
     print("ylength_before",len(y))
+
+    k = int(len(y)/1024)
+
     for j in range(k):
         sum = np.sum(np.log10(np.power(y[frame:frame+1024],2)))
         print(j)
@@ -88,6 +94,8 @@ for audio in audio_male_path:
     D = np.abs(D) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
 
+    print(D.shape)
+
     D = np.expand_dims(D, axis=2)
     spectrogram_male_save.append(D)
 
@@ -100,10 +108,10 @@ print("Male spec shape", spectrogram_male_save.shape)
 print("Male spec converting start")
 
 try:
-    mkdir("./log_spectrograms_male")
-    convert_to(spectrogram_male_save, "./log_spectrograms_male/log_spectrograms_male_speech.tfrecords")
+    mkdir("./spectrograms_male")
+    convert_to(spectrogram_male_save, "./spectrograms_male/spectrograms_male_speech.tfrecords")
 except OSError :
-    convert_to(spectrogram_male_save, "./log_spectrograms_male/log_spectrograms_male_speech.tfrecords")
+    convert_to(spectrogram_male_save, "./spectrograms_male/spectrograms_male_speech.tfrecords")
     
 print("Male spec converting finished")
 
@@ -116,8 +124,12 @@ for audio in audio_female_path:
     
     
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
+
+    if len(y) < duration*SAMPLING_RATE:
+        continue    
+
     k = int(len(y)/1024)
-    
+
     for j in range(k):
         sum = np.sum(np.log10(np.power(y[frame:frame+1024],2)))
         if sum > threshold :
@@ -156,9 +168,9 @@ print("Female spec converting start")
 
 try:
     mkdir("./log_spectrograms_female")
-    convert_to(spectrogram_female_save, "./log_spectrograms_female/log_spectrograms_female_speech.tfrecords")
+    convert_to(spectrogram_female_save, "./spectrograms_female/spectrograms_female_speech.tfrecords")
 except OSError :
-    convert_to(spectrogram_female_save, "./log_spectrograms_female/log_spectrograms_female_speech.tfrecords")
+    convert_to(spectrogram_female_save, "./spectrograms_female/spectrograms_female_speech.tfrecords")
      
 print("Female spec converting finished")
 

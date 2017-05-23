@@ -13,10 +13,10 @@ from glob import glob
 
 SAMPLING_RATE = 16000
 FFT_SIZE = 1024 #Frequency resolution
-hop_length = int(FFT_SIZE/6)
+hop_length = int(FFT_SIZE/6.5)
 offset = 0
 duration = 2.5
-
+eps = np.finfo(float).eps
 
 def search(dirname):
     path_list = glob("%s/*.wav"%(dirname))
@@ -44,7 +44,7 @@ for i, audio in enumerate(bass_path_list):
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset = offset, duration = duration)
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True)
-    D = np.abs(D) # Magnitude of plain spectrogram
+    D = np.log10(np.abs(D)+eps) # Magnitude of plain spectrogram
     D = np.expand_dims(D, axis=2)
     spectrogram_bass_save.append(D)
 
@@ -56,8 +56,8 @@ print("Bass spectrogram shape", spectrogram_bass_save.shape)
 #convert numpy array(spectrogram_bass_save) to tf_recordfile
 print("Bass_electronic spectrogram converting start")
 
-os.makedirs("./spectrograms_bass", exist_ok=True)
-convert_to(spectrogram_bass_save, "./spectrograms_bass/spectrograms_bass_log.tfrecords")
+os.makedirs("./log_spectrograms_bass", exist_ok=True)
+convert_to(spectrogram_bass_save, "./log_spectrograms_bass/spectrograms_bass_log.tfrecords")
     
 print("Bass_electronic spectrogram converting finished")
 
@@ -72,7 +72,7 @@ for i, audio in enumerate(keyboard_path_list):
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset = offset, duration = duration)
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True)
-    D = np.abs(D) # Magnitude of plain spectrogram
+    D = np.log10(np.abs(D)+eps) # Magnitude of plain spectrogram
     D = np.expand_dims(D, axis=2)
     spectrogram_keyboard_save.append(D)
 
@@ -84,8 +84,8 @@ print("Keyboard spec shape", spectrogram_keyboard_save.shape)
 #convert numpy array(spectrogram_keyboard_save) to tf_recordfile
 print("Keyboard_electronic spectrogram converting start")
 
-os.makedirs("./spectrograms_keyboard", exist_ok=True)
-convert_to(spectrogram_keyboard_save, "./spectrograms_keyboard/spectrograms_keyboard_log.tfrecords")
+os.makedirs("./log_spectrograms_keyboard", exist_ok=True)
+convert_to(spectrogram_keyboard_save, "./log_spectrograms_keyboard/spectrograms_keyboard_log.tfrecords")
     
 print("Keyboard_electronic spectrogram converting finished")
 

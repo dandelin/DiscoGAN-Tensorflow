@@ -20,15 +20,15 @@ def config(name, shape):
     conf.checkpoint_dir = name + '/checkpoint'
     conf.snapshot_dir = name + '/shapshots'
     conf.audio_dir = name + '/audios'
-    layer_depth = 2
+    layer_depth = 4
 
     conf.gen_conv_infos = {
         "conv_layer_number": layer_depth,
         "filter":[
             [4, 4, conf.c, 64],
             [4, 4, 64, 64*2],
-            #[4, 4, 64*2, 64*4],
-            #[4, 4, 64*4, 64*8],
+            [4, 4, 64*2, 64*4],
+            [4, 4, 64*4, 64*8],
         ],
         "stride" : [[1, 2, 2, 1] for _ in range(layer_depth)],
     }
@@ -36,15 +36,15 @@ def config(name, shape):
     conf.gen_deconv_infos = {
         "conv_layer_number": layer_depth,
         "filter":[
-            #[4, 4, 64*4, 64*8],
-            #[4, 4, 64*2, 64*4],
+            [4, 4, 64*4, 64*8],
+            [4, 4, 64*2, 64*4],
             [4, 4, 64*1, 64*2],
             [4, 4, conf.c, 64],
         ],
         "stride" : [[1, 2, 2, 1] for _ in range(layer_depth)],
         "output_dims" : [
-            #[conf.batch_size, ceil(conf.h/8), ceil(conf.w/8), 64*4],
-            #[conf.batch_size, ceil(conf.h/4), ceil(conf.w/4), 64*2],
+            [conf.batch_size, ceil(conf.h/8), ceil(conf.w/8), 64*4],
+            [conf.batch_size, ceil(conf.h/4), ceil(conf.w/4), 64*2],
             [conf.batch_size, ceil(conf.h/2), ceil(conf.w/2), 64*1],
             [conf.batch_size, conf.h, conf.w, conf.c]
         ],
@@ -55,9 +55,9 @@ def config(name, shape):
         "filter":[
             [4, 4, conf.c, 64],
             [4, 4, 64, 64*2],
-            #[4, 4, 64*2, 64*4],
-            #[4, 4, 64*4, 64*8],
-            [4, 4, 64*2, 1],
+            [4, 4, 64*2, 64*4],
+            [4, 4, 64*4, 64*8],
+            [4, 4, 64*8, 1],
         ],
         "stride" : [[1, 2, 2, 1] for _ in range(layer_depth + 1)],
     }

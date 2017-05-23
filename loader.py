@@ -102,7 +102,7 @@ def make_grid(tensor, nrow=8, padding=2,
 class Spectrogram_Loader(object):
     def __init__(self, root, batch_size, scale_size, data_format, \
         split=None, seed=None, \
-        sampling_rate = 16000, fft_size = 1024, hop_length = int(1024/6), offset = 0, duration = 2.5):
+        sampling_rate = 16000, fft_size = 1024, hop_length = int(1024/6.5), offset = 0, duration = 2.5):
 
         self.root = root
         self.batch_size = batch_size
@@ -129,7 +129,7 @@ class Spectrogram_Loader(object):
         h = D.shape[0]
         w = D.shape[1]
         c = 1
-
+        print(h,w,c)
         # h = int(self.fft_size/2)+1
         # w = int(float(self.sampling_rate*self.duration)/(self.hop_length))+1
         # c = 1
@@ -171,9 +171,10 @@ class Spectrogram_Loader(object):
     
     #Griffin lim algorithm
     def save_reconstructed_audio(self, spectrogram, filename):
-        spectrogram = np.power(spectrogram, 10) # If the input specrogram is scaled with logarithm, use this line.
+        # spectrogram = np.power(10, spectrogram) # If the input specrogram is scaled with logarithm, use this line.
         p = 2 * np.pi * np.random.random_sample(spectrogram.shape) - np.pi
-        for i in range(100):
+        for i in range(500):
+            print(i)
             S = spectrogram * np.exp(1j*p)
             x = librosa.istft(S, hop_length = self.hop_length, win_length = self.fft_size)
             p = np.angle(librosa.stft(x, n_fft = self.fft_size, hop_length = self.hop_length))

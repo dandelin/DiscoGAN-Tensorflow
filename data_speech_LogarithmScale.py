@@ -11,8 +11,8 @@ from glob import glob
 
 SAMPLING_RATE = 16000
 FFT_SIZE = 1024 #Frequency resolution
-hop_length = int(FFT_SIZE/6)
-
+hop_length = int(FFT_SIZE/6.5)
+eps = np.finfo(float).eps
 
 #FIX ME : write your data directory
 male_dir_path = "./Male"
@@ -59,10 +59,10 @@ duration = 2.5
 for audio in audio_male_path:
     i += 1
     
-    #loading from offset(1s) to (4s)
+    
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
     if len(y) < duration*SAMPLING_RATE:
-        continue
+       continue
 
     k = int(len(y)/1024)
     print("ylength_before",len(y))
@@ -88,7 +88,7 @@ for audio in audio_male_path:
     print("ylength_after",len(y))
     print("i",i)
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-    D = np.log10(np.abs(D)) # Magnitude of plain spectrogram
+    D = np.log10(np.abs(D)+eps) # Magnitude of plain spectrogram
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram
 
     D = np.expand_dims(D, axis=2)
@@ -117,11 +117,10 @@ frame = 0
 for audio in audio_female_path:
     i += 1
     
-    #loading from offset(1s) to (4s)
+    
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True)
     if len(y) < duration*SAMPLING_RATE:
         continue
-
     k = int(len(y)/1024)
     
     for j in range(k):
@@ -145,7 +144,7 @@ for audio in audio_female_path:
     print(i)
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-    D = np.log10(np.abs(D)) # Magnitude of plain spectrogram
+    D = np.log10(np.abs(D)+eps) # Magnitude of plain spectrogram
    
    
     # D = librosa.feature.melspectrogram(y=y, n_fft=FFT_SIZE, hop_length=hop_length, sr=sr, n_mels=128, fmax=None) # use when you want to use mel-spectrogram

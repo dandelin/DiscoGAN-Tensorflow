@@ -13,7 +13,7 @@ from glob import glob
 
 SAMPLING_RATE = 16000
 FFT_SIZE = 1024 #Frequency resolution
-hop_length = int(FFT_SIZE/6)
+hop_length = int(FFT_SIZE/6.5)
 offset = 0
 duration = 2.5
 
@@ -44,7 +44,7 @@ for i, audio in enumerate(bass_path_list):
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset = offset, duration = duration)
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-    D = np.log10(np.abs(D)) # Magnitude of plain spectrogram
+    D = np.abs(D) # Magnitude of plain spectrogram
     D = np.expand_dims(D, axis=2)
     spectrogram_bass_save.append(D)
 
@@ -72,7 +72,7 @@ for i, audio in enumerate(keyboard_path_list):
     y, sr = librosa.core.load(audio, sr = SAMPLING_RATE, mono=True, offset = offset, duration = duration)
 
     D = librosa.stft(y=y, n_fft=FFT_SIZE, hop_length=hop_length, center=True) # win_length = FFT_SIZE
-    D = np.log10(np.abs(D)) # Magnitude of plain spectrogram
+    D = np.abs(D) # Magnitude of plain spectrogram
     D = np.expand_dims(D, axis=2)
     spectrogram_keyboard_save.append(D)
 
