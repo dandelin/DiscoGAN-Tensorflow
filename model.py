@@ -32,8 +32,8 @@ class DiscoGAN(object):
             'B': b_dim
         }
 
-        self.loader_a = Spectrogram_Loader('./spectrograms_female', self.batch_size, self.image_dims['A'], "NHWC")
-        self.loader_b = Spectrogram_Loader('./spectrograms_male', self.batch_size, self.image_dims['B'], "NHWC")
+        self.loader_a = Spectrogram_Loader('../upload/keyboard', self.batch_size, self.image_dims['A'], "NHWC")
+        self.loader_b = Spectrogram_Loader('../upload/bass', self.batch_size, self.image_dims['B'], "NHWC")
         
         self.channel = channel
         self.gen_conv_infos = gen_conv_infos
@@ -184,31 +184,26 @@ class DiscoGAN(object):
             if coord.should_stop():
                 break
 
-
             _, _,summary_run = self.sess.run([optimize_D, optimize_G, summary])
-            
-        
-            
-            
-            if step % 100 == 0:
+
+            if step % 200 == 0:
                 writer.add_summary(summary_run, step)
                 os.makedirs(self.config.snapshot_dir, exist_ok=True)
-                for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
-                    arg = getattr(self, 'x_{}'.format(t))
-                    images = self.sess.run(arg)
-                    save_image(images, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
-                    
-                    
-            if step % 100 == 0:
-                writer.add_summary(summary_run, step)
                 os.makedirs(self.config.audio_dir, exist_ok=True)
-                for t in ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']:
-                    arg = getattr(self, 'x_{}'.format(t))
-                    spectrograms = self.sess.run(arg)
-                    print("spectrogram first sample", '{}{}'.format(t,step), "shape : ", spectrograms[0,:,:,0].shape)
-                    spectrograms = self.sess.run(arg)            
-                    print("reconstruction session...")
-                    self.loader_a.save_reconstructed_audio(spectrograms[0,:,:,0], '{}/{}{}.wav'.format(self.config.audio_dir, t, step))
+
+                a = self.loader_a.get_spectrogram_from_loader(self.sess)
+                b = self.loader_b.get_spectrogram_from_loader(self.sess)
+                ab = self.G_AB.build_model(a, reuse=True)
+                ba = self.G_BA.build_model(b, reuse=True)
+                aba = self.G_BA.build_model(ab, reuse=True)
+                bab = self.G_AB.build_model(ba, reuse=True)
+
+                for img, t in zip([a, ab, ba, b, aba, bab], ['A', 'AB', 'BA', 'B', 'ABA', 'BAB']):
+                    if t != 'A' and t != 'B':
+                        img = self.sess.run(img)
+                    print("spectrogram first sample", '{}{}'.format(t, step), "shape : ", img[0,:,:,0].shape)
+                    save_image(img, '{}/{}{}.png'.format(self.config.snapshot_dir, t, step))
+                    self.loader_a.save_reconstructed_audio(img[0,:,:,0], '{}/{}{}.wav'.format(self.config.audio_dir, t, step))
                     
 
             if step % 500 == 0:
